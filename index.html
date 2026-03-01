@@ -502,8 +502,40 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   init();
 </script>
 </script>
-<script src="https://script.google.com/macros/s/AKfycbzAKmRZbDNzhaw9FahD-3YEXFPeWf2ToUGhK9eQXdeuQTnubB1qvV7fWD3MvOenE8QQ/exec?type=snippet&sid=trida-web"></script>
-</body>
+<script>
+(function() {
+  var COLLECTOR = 'https://script.google.com/macros/s/AKfycbzAKmRZbDNzhaw9FahD-3YEXFPeWf2ToUGhK9eQXdeuQTnubB1qvV7fWD3MvOenE8QQ/exec';
+  var SITE_ID = 'trida-web';
+
+  function getUID() {
+    var uid = localStorage.getItem('_tuid');
+    if (!uid) { uid = 'u_' + Math.random().toString(36).substr(2,9); localStorage.setItem('_tuid', uid); }
+    return uid;
+  }
+
+  function getSID() {
+    var sid = sessionStorage.getItem('_tsid');
+    if (!sid) { sid = 's_' + Math.random().toString(36).substr(2,9); sessionStorage.setItem('_tsid', sid); }
+    return sid;
+  }
+
+  window._track = function(ev, props) {
+    var p = new URLSearchParams({
+      sid: SITE_ID,
+      uid: getUID(),
+      ses: getSID(),
+      ev: ev,
+      pg: window.location.pathname,
+      ref: document.referrer,
+      props: props ? JSON.stringify(props) : '',
+      _cb: Date.now()
+    });
+    new Image().src = COLLECTOR + '?' + p.toString();
+  };
+
+  _track('pageview');
+})();
+</script></body>
 </html>
 </body>
 </html>
