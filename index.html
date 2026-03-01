@@ -529,10 +529,8 @@ window._track = function(ev, props) {
       props: props ? JSON.stringify(props) : '',
       _cb: Date.now()
     });
-    
-    // sendBeacon neposílá credentials
     var sent = navigator.sendBeacon(COLLECTOR + '?' + p.toString());
-    console.log('Beacon sent:', sent);
+    console.log('Beacon sent:', sent, COLLECTOR + '?' + p.toString());
   };
 
   _track('pageview');
