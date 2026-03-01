@@ -501,7 +501,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   setTheme(savedTheme);
   init();
 </script>
-<script>
+	<script>
 (function() {
   var COLLECTOR = 'https://script.google.com/macros/s/AKfycbzAKmRZbDNzhaw9FahD-3YEXFPeWf2ToUGhK9eQXdeuQTnubB1qvV7fWD3MvOenE8QQ/exec';
   var SITE_ID = 'trida-web';
@@ -529,13 +529,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       props: props ? JSON.stringify(props) : '',
       _cb: Date.now()
     });
-    
-    // Iframe trick - obchází credentials problém
-    var iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = COLLECTOR + '?' + p.toString();
-    document.body.appendChild(iframe);
-    setTimeout(function() { document.body.removeChild(iframe); }, 3000);
+    navigator.sendBeacon(COLLECTOR + '?' + p.toString());
   };
 
   _track('pageview');
