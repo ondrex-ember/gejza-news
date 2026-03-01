@@ -8,6 +8,9 @@ on:
 jobs:
   update-data:
     runs-on: ubuntu-latest
+    # TADY JE TA MAGIE, KTERÁ POVOLÍ ZÁPIS:
+    permissions:
+      contents: write
     steps:
       - name: Checkout repozitáře
         uses: actions/checkout@v3
