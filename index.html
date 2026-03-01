@@ -123,27 +123,56 @@
     .news-perex { font-size: 13px; color: var(--text); line-height: 1.5; opacity: 0.8; flex: 1; }
 
     /* RADIO LIST */
-    #radio-container { display: none; flex-direction: column; gap: 15px; }
+    #radio-container { 
+      display: none; 
+      /* Změněno na GRID pro 2 sloupce */
+      grid-template-columns: 1fr 1fr; 
+      gap: 20px; 
+    }
     .radio-card {
       background: var(--card); border: 1px solid var(--border); border-radius: 8px;
       padding: 15px 25px; display: flex; justify-content: space-between; align-items: center;
     }
     .radio-card:hover { border-color: var(--act); }
-    .radio-left { display: flex; align-items: center; gap: 20px; }
-    .radio-icon { width: 32px; height: 32px; color: var(--text); opacity: 0.8; }
+    
+    .radio-left { 
+      display: flex; align-items: center; gap: 20px; 
+      min-width: 0; /* Extrémně důležité pro zalamování textu uvnitř flexboxu */
+      flex: 1; /* Zabere volné místo před tlačítkem */
+      padding-right: 15px;
+    }
+    
+    .radio-icon { 
+      width: 32px; height: 32px; color: var(--text); opacity: 0.8; 
+      flex-shrink: 0; /* Zabrání smrsknutí ikony */
+    }
     .radio-title { font-size: 18px; font-weight: bold; color: var(--text); margin-bottom: 4px; }
-    .radio-url { font-size: 11px; color: var(--muted); font-family: monospace; }
+    
+    .radio-url { 
+      font-size: 11px; color: var(--muted); font-family: monospace; 
+      word-break: break-all; /* Zalomí dlouhou URL adresu na další řádek */
+      line-height: 1.4;
+    }
     .btn-play-list {
       background: var(--act); color: #000; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer;
+      flex-shrink: 0; /* Zabrání smrsknutí tlačítka */
     }
 
     .loading { grid-column: 1 / -1; text-align: center; padding: 50px; opacity: 0.5; }
 
-    @media (max-width: 768px) {
+	@media (max-width: 768px) {
       .feed-grid { grid-template-columns: 1fr; }
+      
+      /* Nové: Na mobilech zpět 1 sloupec pro rádia */
+      #radio-container { grid-template-columns: 1fr; } 
+      
       #global-player { flex-direction: column; gap: 15px; padding: 15px 20px; align-items: flex-start; }
       .player-controls { width: 100%; justify-content: space-between; }
       .radio-card { flex-direction: column; align-items: flex-start; gap: 15px; }
+      
+      /* Nové: reset paddingu na mobilu */
+      .radio-left { padding-right: 0; width: 100%; } 
+      
       .btn-play-list { width: 100%; }
     }
 	
@@ -261,7 +290,7 @@
 
   async function init() {
     try {
-      // Extrémně rychlé načtení z lokálního souboru (který každých 15 min tvoří robot)
+      // načtení z lokálního souboru
       const response = await fetch('./data.json');
       appData = await response.json();
       
@@ -273,11 +302,12 @@
     }
   }
 
-  function switchTab(tab, btn) {
+ function switchTab(tab, btn) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('news-container').style.display = tab === 'news' ? 'flex' : 'none';
-    document.getElementById('radio-container').style.display = tab === 'radio' ? 'flex' : 'none';
+    // TADY JE ZMĚNA z 'flex' na 'grid':
+    document.getElementById('radio-container').style.display = tab === 'radio' ? 'grid' : 'none';
   }
 
   function renderRadio() {
