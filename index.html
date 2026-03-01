@@ -518,7 +518,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return sid;
   }
 
-  window._track = function(ev, props) {
+window._track = function(ev, props) {
     var p = new URLSearchParams({
       sid: SITE_ID,
       uid: getUID(),
@@ -529,7 +529,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       props: props ? JSON.stringify(props) : '',
       _cb: Date.now()
     });
-    navigator.sendBeacon(COLLECTOR + '?' + p.toString());
+    
+    fetch(COLLECTOR + '?' + p.toString(), {
+      method: 'GET',
+      mode: 'no-cors',
+      credentials: 'omit'
+    }).catch(function() {});
   };
 
   _track('pageview');
