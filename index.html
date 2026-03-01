@@ -518,7 +518,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return sid;
   }
 
-window._track = function(ev, props) {
+  window._track = function(ev, props) {
     var p = new URLSearchParams({
       sid: SITE_ID,
       uid: getUID(),
@@ -529,8 +529,13 @@ window._track = function(ev, props) {
       props: props ? JSON.stringify(props) : '',
       _cb: Date.now()
     });
-    var sent = navigator.sendBeacon(COLLECTOR + '?' + p.toString());
-    console.log('Beacon sent:', sent, COLLECTOR + '?' + p.toString());
+    
+    // Iframe trick - obchází credentials problém
+    var iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = COLLECTOR + '?' + p.toString();
+    document.body.appendChild(iframe);
+    setTimeout(function() { document.body.removeChild(iframe); }, 3000);
   };
 
   _track('pageview');
