@@ -368,18 +368,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   if(audio) audio.volume = 0.5;
 
-  async function init() {
+async function init() {
     try {
-      // načtení z lokálního souboru
-      const response = await fetch('data.json?v=' + new Date().getTime());
-		
+      // ENDGAME: Taháme data přímo z GitHubu! 
+      const githubRawUrl = 'https://raw.githubusercontent.com/ondrex-ember/gejza-news/main/data.json';
+      const cacheBuster = '?v=' + new Date().getTime();
+      
+      const response = await fetch(githubRawUrl + cacheBuster);
+      
       appData = await response.json();
       
       renderRadio();
       renderNews();
     } catch (err) {
       const container = document.getElementById('news-container');
-      if (container) container.innerHTML = `<div class="loading" style="color:var(--danger)">Chyba: data.json zatím neexistuje. (Počkej na první běh GitHub robota)</div>`;
+      if (container) container.innerHTML = `<div class="loading" style="color:var(--danger)">Chyba: Nepodařilo se stáhnout živá data z GitHubu. Zkontroluj URL adresu.</div>`;
     }
   }
 
