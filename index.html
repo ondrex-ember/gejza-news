@@ -371,7 +371,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   async function init() {
     try {
       // načtení z lokálního souboru
-      const response = await fetch('./data.json');
+      const response = await fetch('data.json?v=' + new Date().getTime());
+		
       appData = await response.json();
       
       renderRadio();
