@@ -180,6 +180,27 @@
       padding: 10px 20px; border-radius: 4px; font-weight: bold; font-size: 14px;
       cursor: pointer; width: 100px; text-align: center;
     }
+	
+	.btn-refresh {
+	background: transparent;
+	color: var(--muted);
+	border: 1px solid var(--border);
+	padding: 6px 12px;
+	border-radius: 4px;
+	font-size: 12px;
+	font-weight: bold;
+	cursor: pointer;
+	transition: all 0.2s;
+	}
+	.btn-refresh:hover {
+	color: var(--text);
+	border-color: var(--act);
+	}
+	.btn-refresh.spin {
+	animation: pulse 1s infinite; /* Využijeme tvou už existující animaci pulse */
+	opacity: 0.5;
+	pointer-events: none;
+	}
 
     /* TABS NAVIGATION */
     .tabs-nav {
@@ -347,11 +368,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <audio id="audio-player"></audio>
 
-<div class="tabs-nav">
-  <button class="tab-btn active" onclick="switchTab('news', this)">Zprávy</button>
-  <button class="tab-btn" onclick="switchTab('radio', this)">Rádio</button>
+<div class="tabs-nav" style="justify-content: space-between; align-items: center;">
+  <div style="display: flex; gap: 30px;">
+    <button class="tab-btn active" onclick="switchTab('news', this)">Zprávy</button>
+    <button class="tab-btn" onclick="switchTab('radio', this)">Rádio</button>
+  </div>
+  <button class="btn-refresh" id="refresh-news-btn" onclick="refreshNewsData()">🔄 Obnov News Jouzo</button>
 </div>
-
 <div class="container">
   <div id="news-container">
     <div class="loading">Načítám zprávy z motoru...</div>
@@ -400,6 +423,41 @@ async function init() {
       if (container) container.innerHTML = `<div class="loading" style="color:var(--danger)">Chyba: Nepodařilo se stáhnout živá data z GitHubu. Zkontroluj URL adresu.</div>`;
     }
   }
+
+	async function refreshNewsData() {
+  const btn = document.getElementById('refresh-news-btn');
+  const newsContainer = document.getElementById('news-container');
+  
+  // Vizuální odezva pro uživatele
+  btn.classList.add('spin');
+  btn.innerText = "⏳ Načítám...";
+  
+  try {
+    const githubRawUrl = 'https://raw.githubusercontent.com/ondrex-ember/gejza-news/main/data.json';
+    const cacheBuster = '?v=' + new Date().getTime(); // Důležité: zamezí načtení starých dat z paměti prohlížeče
+    
+    const response = await fetch(githubRawUrl + cacheBuster);
+    const newData = await response.json();
+    
+    // Přepíšeme stará data zpráv novými
+    appData.news = newData.news;
+    
+    // Znovu vykreslíme zprávy
+    renderNews();
+    
+    // Bonus: Můžeme potichu aktualizovat i seznam rádií (audio pojede dál beze změny!)
+    appData.radio = newData.radio;
+    renderRadio(); 
+
+  } catch (err) {
+    console.error("Chyba při obnově dat:", err);
+    // Volitelně můžeme zobrazit toast notifikaci nebo error, ale nepřemažeme staré zprávy
+  } finally {
+    // Vrátíme tlačítko do původního stavu
+    btn.classList.remove('spin');
+    btn.innerText = "🔄 Obnov znovu";
+  }
+}
 
  function switchTab(tab, btn) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
