@@ -373,7 +373,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <button class="tab-btn active" onclick="switchTab('news', this)">Zprávy</button>
     <button class="tab-btn" onclick="switchTab('radio', this)">Rádio</button>
   </div>
-  <button class="btn-refresh" id="refresh-news-btn" onclick="refreshNewsData()">🔄 Obnov News Jouzo</button>
+  <button class="btn-refresh" id="refresh-btn" onclick="refreshData(true)">🔄 Obnovit</button>
 </div>
 <div class="container">
   <div id="news-container">
@@ -397,7 +397,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </footer>
 
 <script>
-  
   let appData = { news: [], radio: [] };
   const audio = document.getElementById('audio-player');
   const mainPlayBtn = document.getElementById('btn-main-play');
@@ -406,14 +405,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   if(audio) audio.volume = 0.5;
 
-async function init() {
+  async function init() {
     try {
       // ENDGAME: Taháme data přímo z GitHubu! 
       const githubRawUrl = 'https://raw.githubusercontent.com/ondrex-ember/gejza-news/main/data.json';
       const cacheBuster = '?v=' + new Date().getTime();
       
       const response = await fetch(githubRawUrl + cacheBuster);
-      
       appData = await response.json();
       
       renderRadio();
@@ -424,46 +422,45 @@ async function init() {
     }
   }
 
-	async function refreshNewsData() {
-  const btn = document.getElementById('refresh-news-btn');
-  const newsContainer = document.getElementById('news-container');
-  
-  // Vizuální odezva pro uživatele
-  btn.classList.add('spin');
-  btn.innerText = "⏳ Načítám...";
-  
-  try {
-    const githubRawUrl = 'https://raw.githubusercontent.com/ondrex-ember/gejza-news/main/data.json';
-    const cacheBuster = '?v=' + new Date().getTime(); // Důležité: zamezí načtení starých dat z paměti prohlížeče
+  // Nová funkce pro tiché obnovení dat
+  async function refreshData(isManual = false) {
+    const btn = document.getElementById('refresh-btn');
     
-    const response = await fetch(githubRawUrl + cacheBuster);
-    const newData = await response.json();
-    
-    // Přepíšeme stará data zpráv novými
-    appData.news = newData.news;
-    
-    // Znovu vykreslíme zprávy
-    renderNews();
-    
-    // Bonus: Můžeme potichu aktualizovat i seznam rádií (audio pojede dál beze změny!)
-    appData.radio = newData.radio;
-    renderRadio(); 
+    // Pokud na to klikl uživatel, ukážeme mu, že se něco děje
+    if (isManual && btn) {
+      btn.classList.add('loading');
+      btn.innerText = "⏳ Načítám...";
+    }
 
-  } catch (err) {
-    console.error("Chyba při obnově dat:", err);
-    // Volitelně můžeme zobrazit toast notifikaci nebo error, ale nepřemažeme staré zprávy
-  } finally {
-    // Vrátíme tlačítko do původního stavu
-    btn.classList.remove('spin');
-    btn.innerText = "🔄 Obnov znovu";
+    try {
+      const githubRawUrl = 'https://raw.githubusercontent.com/ondrex-ember/gejza-news/main/data.json';
+      const cacheBuster = '?v=' + new Date().getTime(); // Finta proti cachování
+      
+      const response = await fetch(githubRawUrl + cacheBuster);
+      const newData = await response.json();
+      
+      // Potichu přepíšeme data v paměti
+      appData = newData;
+      
+      // Znovu vykreslíme obsah na obrazovce (rádio to nepřeruší!)
+      renderNews();
+      renderRadio(); 
+
+    } catch (err) {
+      console.error("Chyba při obnově dat:", err);
+    } finally {
+      // Vrátíme tlačítko do normálu
+      if (isManual && btn) {
+        btn.classList.remove('loading');
+        btn.innerText = "🔄 Obnovit";
+      }
+    }
   }
-}
 
- function switchTab(tab, btn) {
+  function switchTab(tab, btn) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('news-container').style.display = tab === 'news' ? 'flex' : 'none';
-    // TADY JE ZMĚNA z 'flex' na 'grid':
     document.getElementById('radio-container').style.display = tab === 'radio' ? 'grid' : 'none';
   }
 
@@ -474,7 +471,6 @@ async function init() {
 
     const radioIconSvg = `<svg class="radio-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2" ry="2"></rect><circle cx="8" cy="14" r="2"></circle><path d="M22 7l-7-5-2 2"></path><circle cx="16" cy="14" r="1"></circle><circle cx="16" cy="16" r="1"></circle></svg>`;
 
-    // IsPublic se už filtrovalo na serveru v build.js
     appData.radio.forEach(stream => {
       radioContainer.innerHTML += `
         <div class="radio-card">
@@ -584,7 +580,13 @@ async function init() {
 
   const savedTheme = localStorage.getItem('pref-theme') || 'dark';
   setTheme(savedTheme);
+  
+  // První načtení při startu
   init();
+  
+  // AUTO-REFRESH: Spustí funkci refreshData() automaticky každých 5 minut (300 000 milisekund)
+  setInterval(() => refreshData(false), 300000); 
+
 </script>
 </body>
 </html>
