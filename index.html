@@ -705,6 +705,7 @@
  
   /* Karta */
   .sr-card        { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .sr-card-map    { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:visible; }
   .sr-card-header { padding:13px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
   .sr-card-title  { font-size:13px; font-weight:bold; color:var(--text); }
   .sr-card-body   { padding:16px 18px; }
@@ -733,7 +734,7 @@
   .sr-chart-loading { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--card); border:1px solid var(--border); padding:7px 16px; border-radius:8px; font-size:12px; color:var(--muted); display:none; }
  
   /* Mapa */
-  #sr-map { height:320px; position:relative; }
+  #sr-map { height:320px; position:relative; overflow:visible !important; z-index:1; }
  
   /* Doprava */
   .sr-doprava-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -1080,7 +1081,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     if (tab === 'weather' && !weatherLoaded) { weatherLoaded = true; loadWeather(); }
     if (tab === 'smartregion' && !srLoaded)  { srLoaded = true; initSmartRegion(); }
-    if (tab === 'smartregion' && srMap) { setTimeout(() => srMap.invalidateSize(), 50); }
+    if (tab === 'smartregion' && srMap) {
+      setTimeout(() => srMap.invalidateSize(true), 100);
+      setTimeout(() => srMap.invalidateSize(true), 500);
+      setTimeout(() => srMap.invalidateSize(true), 1000);
+    }
   }
 
   /* =========================================================
@@ -1322,7 +1327,7 @@ async function initSmartRegion() {
     </div>
  
     <!-- MAPA -->
-    <div class="sr-card">
+    <div class="sr-card-map">
       <div class="sr-card-header"><div class="sr-card-title">🗺️ Mapa senzorů</div></div>
       <div id="sr-map"></div>
     </div>
