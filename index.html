@@ -1080,6 +1080,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     if (tab === 'weather' && !weatherLoaded) { weatherLoaded = true; loadWeather(); }
     if (tab === 'smartregion' && !srLoaded)  { srLoaded = true; initSmartRegion(); }
+    if (tab === 'smartregion' && srMap) { setTimeout(() => srMap.invalidateSize(), 50); }
   }
 
   /* =========================================================
@@ -1254,7 +1255,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 /* ═══════════════════════════════════════════════════════════════
    ⚙️  NASTAV SVOJI GAS URL (po novém deploy → ?format=json)
    ═══════════════════════════════════════════════════════════════ */
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbz_-x5owHB7b9lLSroTZrg0H_xIw3ssU2zMsUUUGx8wEr_3MTc2j3cO9eludjgiYFo/exec';
+const GAS_API_URL = 'VLOZ_SVOJI_GAS_EXEC_URL_SEM';
  
 /* ── Stav ─────────────────────────────────────────────────────── */
 let srLoaded   = false;
@@ -1388,12 +1389,17 @@ async function srFetch(days, gran) {
   if (load) load.style.display = 'block';
   try {
     const url = `${GAS_API_URL}?format=json&days=${days}&gran=${gran}&_t=${Date.now()}`;
-    const data = await (await fetch(url)).json();
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
     srOnData(data);
   } catch(e) {
     if (load) load.style.display = 'none';
     const info = document.getElementById('sr-info');
-    if (info) info.textContent = '⚠️ Chyba připojení k NBSense';
+    const isPlaceholder = GAS_API_URL === 'VLOZ_SVOJI_GAS_EXEC_URL_SEM';
+    if (info) info.textContent = isPlaceholder
+      ? '⚙️ Nastav GAS_API_URL v kódu'
+      : '⚠️ Chyba připojení k NBSense — zkontroluj GAS deployment a CORS';
     console.error('SR fetch error:', e);
   }
 }
@@ -1504,6 +1510,8 @@ function srInitMap() {
   if (!el || srMap) return;
   srMap = L.map('sr-map').setView([50.7600, 14.5571], 12);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OSM' }).addTo(srMap);
+  // Leaflet fix: kontejner byl skrytý při init, přepočítat rozměry
+  setTimeout(() => srMap.invalidateSize(), 100);
 }
 function srRenderMap(data) {
   if (!window.L || !srMap) return;
