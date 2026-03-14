@@ -1258,7 +1258,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 /* ═══════════════════════════════════════════════════════════════
    ⚙️  NASTAV SVOJI GAS URL (po novém deploy → ?format=json)
    ═══════════════════════════════════════════════════════════════ */
-const GAS_API_URL = 'VLOZ_SVOJI_GAS_EXEC_URL_SEM';
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbz_-x5owHB7b9lLSroTZrg0H_xIw3ssU2zMsUUUGx8wEr_3MTc2j3cO9eludjgiYFo/exec';
  
 /* ── Stav ─────────────────────────────────────────────────────── */
 let srLoaded   = false;
@@ -1284,8 +1284,8 @@ srDS.forEach(d => { srVis[d.key] = !d.hidden; });
 async function initSmartRegion() {
   const c = document.getElementById('smartregion-container');
  
-  if (GAS_API_URL === 'VLOZ_SVOJI_GAS_EXEC_URL_SEM') {
-    c.innerHTML = `<div class="sr-banner">⚙️ Nastav GAS URL — v <code>index.html</code> nahraď <code>VLOZ_SVOJI_GAS_EXEC_URL_SEM</code> svojí exec URL z GAS deploymentu.</div>`;
+  if (false) {
+    c.innerHTML = `<div class="sr-banner">⚙️ Nastav GAS URL — v <code>index.html</code> nahraď <code>https://script.google.com/macros/s/AKfycbz_-x5owHB7b9lLSroTZrg0H_xIw3ssU2zMsUUUGx8wEr_3MTc2j3cO9eludjgiYFo/exec</code> svojí exec URL z GAS deploymentu.</div>`;
     return;
   }
  
@@ -1403,7 +1403,7 @@ async function srFetch(days, gran) {
   } catch(e) {
     if (load) load.style.display = 'none';
     const info = document.getElementById('sr-info');
-    const isPlaceholder = GAS_API_URL === 'https://script.google.com/macros/s/AKfycbz_-x5owHB7b9lLSroTZrg0H_xIw3ssU2zMsUUUGx8wEr_3MTc2j3cO9eludjgiYFo/exec';
+    const isPlaceholder = false;
     if (info) info.textContent = isPlaceholder
       ? '⚙️ Nastav GAS_API_URL v kódu'
       : '⚠️ Chyba připojení k NBSense — zkontroluj GAS deployment a CORS';
@@ -1573,7 +1573,7 @@ async function srLoadDoprava() {
  
     // Uložení do NBSense DB (max 1×/hod) přes GET parametr
     const seg = fcd.find(s=>s.Direction===2)||fcd[0];
-    if (GAS_API_URL !== 'VLOZ_SVOJI_GAS_EXEC_URL_SEM') {
+    if (GAS_API_URL !== 'https://script.google.com/macros/s/AKfycbz_-x5owHB7b9lLSroTZrg0H_xIw3ssU2zMsUUUGx8wEr_3MTc2j3cO9eludjgiYFo/exec') {
       fetch(`${GAS_API_URL}?format=saveDoprava&speed=${seg.VD2}&delay=${seg.VD4}&level=${seg.VD10}`).catch(()=>{});
     }
  
