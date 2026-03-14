@@ -1082,7 +1082,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if (tab === 'weather' && !weatherLoaded) { weatherLoaded = true; loadWeather(); }
     if (tab === 'smartregion' && !srLoaded)  { srLoaded = true; initSmartRegion(); }
     if (tab === 'smartregion' && srMap) {
-      setTimeout(() => srMap.invalidateSize(true), 200);
+      setTimeout(() => srMap.invalidateSize(true), 0);
     }
   }
 
@@ -1258,7 +1258,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 /* ═══════════════════════════════════════════════════════════════
    ⚙️  NASTAV SVOJI GAS URL (po novém deploy → ?format=json)
    ═══════════════════════════════════════════════════════════════ */
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbz_-x5owHB7b9lLSroTZrg0H_xIw3ssU2zMsUUUGx8wEr_3MTc2j3cO9eludjgiYFo/exec';
+const GAS_API_URL = 'VLOZ_SVOJI_GAS_EXEC_URL_SEM';
  
 /* ── Stav ─────────────────────────────────────────────────────── */
 let srLoaded   = false;
@@ -1356,9 +1356,12 @@ async function initSmartRegion() {
   document.getElementById('sr-gran').addEventListener('change', e => srFetch(srDays, e.target.value));
  
   srBuildChecks();
-  // Mapa init + fetch dat
-  srInitMap();
-  srFetch(7, 'auto');
+  // setTimeout(0) = jeden JS tick delay → prohlížeč stihne reflow po display:flex
+  // bez toho Leaflet neví jaká je šířka kontejneru → split tiles
+  setTimeout(() => {
+    srInitMap();
+    srFetch(7, 'auto');
+  }, 0);
   srLoadDoprava();
   setInterval(srLoadDoprava, 5 * 60 * 1000);
 }
@@ -1400,7 +1403,7 @@ async function srFetch(days, gran) {
   } catch(e) {
     if (load) load.style.display = 'none';
     const info = document.getElementById('sr-info');
-    const isPlaceholder = GAS_API_URL === 'VLOZ_SVOJI_GAS_EXEC_URL_SEM';
+    const isPlaceholder = GAS_API_URL === 'https://script.google.com/macros/s/AKfycbz_-x5owHB7b9lLSroTZrg0H_xIw3ssU2zMsUUUGx8wEr_3MTc2j3cO9eludjgiYFo/exec';
     if (info) info.textContent = isPlaceholder
       ? '⚙️ Nastav GAS_API_URL v kódu'
       : '⚠️ Chyba připojení k NBSense — zkontroluj GAS deployment a CORS';
