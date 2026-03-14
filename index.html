@@ -47,7 +47,6 @@
   	window.dataLayer = window.dataLayer || [];
   	function gtag(){dataLayer.push(arguments);}
   	gtag('js', new Date());
-
   	gtag('config', 'G-4K77WLE5F5');
 	</script>
 <!-- Google Tag Manager -->
@@ -76,23 +75,6 @@
   "founder": {
     "@type": "Person",
     "name": "Ondrex"
-  },
-  "author": [
-    {
-      "@type": "Person",
-      "name": "Ondrex",
-      "jobTitle": "1st idea and concept"
-    },
-  "author": {
-    "@type": "Organization",
-    "name": "Ember",
-    "url": "https://www.ember-pa.cz"
-  },
-  "image": "/og-image.jpg",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "CZK"
   }
 }
 </script>
@@ -126,9 +108,9 @@
       display: flex; justify-content: space-between; align-items: center;
     }
 
-    /* GLOBAL RADIO PLAYER (Nový styl) */
+    /* GLOBAL RADIO PLAYER */
     #global-player {
-      display: none; /* Schováno by default */
+      display: none;
       background: var(--card);
       border-bottom: 1px solid var(--border);
       padding: 15px 40px;
@@ -146,7 +128,6 @@
 
     .player-left { display: flex; align-items: center; gap: 20px; }
     
-    /* Pulsující ON AIR */
     @keyframes pulse {
       0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.7); }
       70% { box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); }
@@ -182,24 +163,24 @@
     }
 	
 	.btn-refresh {
-	background: transparent;
-	color: var(--muted);
-	border: 1px solid var(--border);
-	padding: 6px 12px;
-	border-radius: 4px;
-	font-size: 12px;
-	font-weight: bold;
-	cursor: pointer;
-	transition: all 0.2s;
+	  background: transparent;
+	  color: var(--muted);
+	  border: 1px solid var(--border);
+	  padding: 6px 12px;
+	  border-radius: 4px;
+	  font-size: 12px;
+	  font-weight: bold;
+	  cursor: pointer;
+	  transition: all 0.2s;
 	}
 	.btn-refresh:hover {
-	color: var(--text);
-	border-color: var(--act);
+	  color: var(--text);
+	  border-color: var(--act);
 	}
 	.btn-refresh.spin {
-	animation: pulse 1s infinite; /* Využijeme tvou už existující animaci pulse */
-	opacity: 0.5;
-	pointer-events: none;
+	  animation: pulse 1s infinite;
+	  opacity: 0.5;
+	  pointer-events: none;
 	}
 
     /* TABS NAVIGATION */
@@ -237,7 +218,6 @@
     /* RADIO LIST */
     #radio-container { 
       display: none; 
-      /* Změněno na GRID pro 2 sloupce */
       grid-template-columns: 1fr 1fr; 
       gap: 20px; 
     }
@@ -249,51 +229,427 @@
     
     .radio-left { 
       display: flex; align-items: center; gap: 20px; 
-      min-width: 0; /* Extrémně důležité pro zalamování textu uvnitř flexboxu */
-      flex: 1; /* Zabere volné místo před tlačítkem */
+      min-width: 0;
+      flex: 1;
       padding-right: 15px;
     }
     
     .radio-icon { 
       width: 32px; height: 32px; color: var(--text); opacity: 0.8; 
-      flex-shrink: 0; /* Zabrání smrsknutí ikony */
+      flex-shrink: 0;
     }
     .radio-title { font-size: 18px; font-weight: bold; color: var(--text); margin-bottom: 4px; }
     
     .radio-url { 
       font-size: 11px; color: var(--muted); font-family: monospace; 
-      word-break: break-all; /* Zalomí dlouhou URL adresu na další řádek */
+      word-break: break-all;
       line-height: 1.4;
     }
     .btn-play-list {
       background: var(--act); color: #000; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer;
-      flex-shrink: 0; /* Zabrání smrsknutí tlačítka */
+      flex-shrink: 0;
     }
 
     .loading { grid-column: 1 / -1; text-align: center; padding: 50px; opacity: 0.5; }
 
-	@media (max-width: 768px) {
+    /* =============================================
+       POČASÍ — WEATHER TAB STYLES
+       ============================================= */
+
+    #weather-container {
+      display: none;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    /* HERO CARD — Nový Bor */
+    .weather-hero {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 30px;
+      position: relative;
+      overflow: hidden;
+    }
+    .weather-hero::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(255,174,0,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    body.theme-blue .weather-hero::before {
+      background: radial-gradient(circle, rgba(100,255,218,0.08) 0%, transparent 70%);
+    }
+    body.theme-red .weather-hero::before {
+      background: radial-gradient(circle, rgba(255,77,77,0.08) 0%, transparent 70%);
+    }
+
+    .weather-hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .weather-hero-location {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .weather-hero-city {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--act);
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+
+    .weather-hero-region {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .weather-hero-badge {
+      background: var(--act);
+      color: #000;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .weather-hero-current {
+      display: flex;
+      align-items: center;
+      gap: 25px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+
+    .weather-hero-icon {
+      font-size: 72px;
+      line-height: 1;
+      filter: drop-shadow(0 0 20px rgba(255,174,0,0.3));
+    }
+
+    .weather-hero-temp-block {}
+
+    .weather-hero-temp {
+      font-size: 64px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -2px;
+      line-height: 1;
+    }
+
+    .weather-hero-desc {
+      font-size: 16px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .weather-hero-stats {
+      display: flex;
+      gap: 25px;
+      flex-wrap: wrap;
+      margin-left: auto;
+    }
+
+    .weather-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      text-align: center;
+    }
+
+    .weather-stat-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .weather-stat-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--text);
+    }
+
+    /* 10-DAY FORECAST STRIP */
+    .forecast-title {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+      padding-top: 15px;
+      border-top: 1px solid var(--border);
+    }
+
+    .forecast-strip {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .forecast-day {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 6px;
+      text-align: center;
+      transition: border-color 0.2s, background 0.2s;
+      cursor: default;
+      min-width: 0;
+    }
+    .forecast-day:hover {
+      border-color: var(--act);
+      background: rgba(255,174,0,0.05);
+    }
+    body.theme-blue .forecast-day:hover { background: rgba(100,255,218,0.05); }
+    body.theme-red .forecast-day:hover { background: rgba(255,77,77,0.05); }
+
+    .forecast-day-name {
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .forecast-day-name.today {
+      color: var(--act);
+    }
+
+    .forecast-day-icon {
+      font-size: 20px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .forecast-day-max {
+      font-size: 14px;
+      font-weight: bold;
+      color: var(--text);
+    }
+
+    .forecast-day-min {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .forecast-day-rain {
+      font-size: 10px;
+      color: #5b9bd5;
+      margin-top: 4px;
+    }
+
+    /* CITIES GRID */
+    .weather-section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .weather-section-title {
+      font-size: 13px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--muted);
+    }
+
+    .weather-section-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .weather-cities-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+    }
+
+    .weather-city-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .weather-city-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--act);
+    }
+
+    .city-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .city-card-name {
+      font-size: 15px;
+      font-weight: bold;
+      color: var(--text);
+    }
+
+    .city-card-region {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .city-card-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .city-card-temps {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .city-card-temp-current {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -1px;
+    }
+
+    .city-card-temp-range {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .city-card-desc {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* City forecast - collapsed mini strip */
+    .city-forecast-mini {
+      display: flex;
+      gap: 4px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .city-forecast-day {
+      flex: 1;
+      min-width: 28px;
+      text-align: center;
+    }
+
+    .city-fday-name {
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .city-fday-icon {
+      font-size: 14px;
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+
+    .city-fday-max {
+      font-size: 11px;
+      font-weight: bold;
+      color: var(--text);
+    }
+
+    /* Update timestamp */
+    .weather-updated {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      opacity: 0.6;
+      padding-top: 10px;
+    }
+
+    .weather-source-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
+    }
+
+    /* Loading skeleton */
+    .weather-skeleton {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @keyframes shimmer {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+
+    .weather-loading-text {
+      animation: shimmer 1.5s infinite;
+    }
+
+    /* ============================================= */
+
+    @media (max-width: 768px) {
       .feed-grid { grid-template-columns: 1fr; }
-      
-      /* Nové: Na mobilech zpět 1 sloupec pro rádia */
       #radio-container { grid-template-columns: 1fr; } 
-      
       #global-player { flex-direction: column; gap: 15px; padding: 15px 20px; align-items: flex-start; }
       .player-controls { width: 100%; justify-content: space-between; }
       .radio-card { flex-direction: column; align-items: flex-start; gap: 15px; }
-      
-      /* Nové: reset paddingu na mobilu */
       .radio-left { padding-right: 0; width: 100%; } 
-      
       .btn-play-list { width: 100%; }
+      
+      /* Weather mobile */
+      .weather-hero-current { gap: 15px; }
+      .weather-hero-icon { font-size: 50px; }
+      .weather-hero-temp { font-size: 48px; }
+      .forecast-strip { grid-template-columns: repeat(10, minmax(60px, 1fr)); }
+      .weather-cities-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 480px) {
+      .weather-cities-grid { grid-template-columns: 1fr; }
     }
 	
 	/* --- PATIČKA & EMBER EFFECT --- */
     .site-footer {
-      margin-top: auto; /* Automaticky tlačí patičku úplně dolů, i když je málo zpráv */
+      margin-top: auto;
       padding: 40px 20px 30px;
       border-top: 1px solid var(--border);
-      background: var(--bg); /* Nebo var(--card) pro jemné odlišení pozadí */
+      background: var(--bg);
       text-align: center;
     }
 
@@ -322,7 +678,6 @@
       user-select: none;
     }
 
-    /* 🔥 EMBER GLOW HOVER 🔥 */
     .footer-links a:hover {
       color: #fff;
       text-shadow: 
@@ -372,14 +727,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <div style="display: flex; gap: 30px;">
     <button class="tab-btn active" onclick="switchTab('news', this)">Zprávy</button>
     <button class="tab-btn" onclick="switchTab('radio', this)">Rádio</button>
+    <button class="tab-btn" onclick="switchTab('weather', this)">Počasí</button>
   </div>
-  <button class="btn-refresh" id="refresh-btn" onclick="refreshData(true)">🔄 Obnovit</button>
+  <button class="btn-refresh" id="refresh-btn" onclick="onRefreshClick()">🔄 Obnovit</button>
 </div>
+
 <div class="container">
   <div id="news-container">
     <div class="loading">Načítám zprávy z motoru...</div>
   </div>
   <div id="radio-container"></div>
+  <div id="weather-container">
+    <div class="weather-skeleton">
+      <div class="weather-loading-text">⛅ Načítám data o počasí...</div>
+    </div>
+  </div>
 </div>
 
 <footer class="site-footer">
@@ -397,7 +759,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </footer>
 
 <script>
+  /* =========================================================
+     APLIKACE — STAV & INICIALIZACE
+     ========================================================= */
   let appData = { news: [], radio: [] };
+  let weatherLoaded = false;
+  let currentTab = 'news';
+
   const audio = document.getElementById('audio-player');
   const mainPlayBtn = document.getElementById('btn-main-play');
   const globalPlayer = document.getElementById('global-player');
@@ -405,72 +773,328 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   if(audio) audio.volume = 0.5;
 
+  /* =========================================================
+     POČASÍ — KONFIGURACE
+     Severočeský kraj = Ústecký + Liberecký kraj
+     ========================================================= */
+  const WEATHER_CITIES = [
+    // HERO — Nový Bor (osobní stanice jako hlavní lokace)
+    { name: 'Nový Bor', region: 'Liberecký kraj', lat: 50.7573, lon: 14.5583, hero: true },
+    // Ostatní města
+    { name: 'Liberec',          region: 'Liberecký kraj',  lat: 50.7671, lon: 15.0562 },
+    { name: 'Česká Lípa',       region: 'Liberecký kraj',  lat: 50.6860, lon: 14.5376 },
+    { name: 'Jablonec n. N.',   region: 'Liberecký kraj',  lat: 50.7221, lon: 15.1703 },
+    { name: 'Ústí nad Labem',   region: 'Ústecký kraj',    lat: 50.6607, lon: 14.0323 },
+    { name: 'Děčín',            region: 'Ústecký kraj',    lat: 50.7736, lon: 14.2149 },
+    { name: 'Teplice',          region: 'Ústecký kraj',    lat: 50.6404, lon: 13.8249 },
+    { name: 'Chomutov',         region: 'Ústecký kraj',    lat: 50.4613, lon: 13.4180 },
+  ];
+
+  /* WMO Weather Code → emoji + popis (CZ) */
+  function wmoToDisplay(code) {
+    const map = {
+      0:  { icon: '☀️',  desc: 'Jasno' },
+      1:  { icon: '🌤️', desc: 'Převážně jasno' },
+      2:  { icon: '⛅',  desc: 'Polojasno' },
+      3:  { icon: '☁️',  desc: 'Zataženo' },
+      45: { icon: '🌫️', desc: 'Mlha' },
+      48: { icon: '🌫️', desc: 'Mrznoucí mlha' },
+      51: { icon: '🌦️', desc: 'Slabé mrholení' },
+      53: { icon: '🌦️', desc: 'Mrholení' },
+      55: { icon: '🌧️', desc: 'Husté mrholení' },
+      61: { icon: '🌧️', desc: 'Slabý déšť' },
+      63: { icon: '🌧️', desc: 'Déšť' },
+      65: { icon: '🌧️', desc: 'Silný déšť' },
+      71: { icon: '🌨️', desc: 'Slabé sněžení' },
+      73: { icon: '❄️',  desc: 'Sněžení' },
+      75: { icon: '❄️',  desc: 'Silné sněžení' },
+      77: { icon: '🌨️', desc: 'Sněhové krupky' },
+      80: { icon: '🌦️', desc: 'Přeháňky' },
+      81: { icon: '🌧️', desc: 'Silné přeháňky' },
+      82: { icon: '⛈️',  desc: 'Velmi silné přeháňky' },
+      85: { icon: '🌨️', desc: 'Sněhové přeháňky' },
+      86: { icon: '❄️',  desc: 'Silné sněhové přeháňky' },
+      95: { icon: '⛈️',  desc: 'Bouřka' },
+      96: { icon: '⛈️',  desc: 'Bouřka s krupobitím' },
+      99: { icon: '⛈️',  desc: 'Silná bouřka' },
+    };
+    return map[code] || { icon: '🌡️', desc: 'Neznámý stav' };
+  }
+
+  const DAY_NAMES_SHORT = ['Ne', 'Po', 'Út', 'St', 'Čt', 'Pá', 'So'];
+
+  function formatDayName(dateStr, index) {
+    if (index === 0) return 'Dnes';
+    if (index === 1) return 'Zítra';
+    const d = new Date(dateStr);
+    return DAY_NAMES_SHORT[d.getDay()];
+  }
+
+  /* =========================================================
+     FETCH POČASÍ — Open-Meteo API
+     ========================================================= */
+  async function fetchCityWeather(city) {
+    const params = new URLSearchParams({
+      latitude: city.lat,
+      longitude: city.lon,
+      current: 'temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m',
+      daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum',
+      timezone: 'Europe/Prague',
+      forecast_days: 10,
+      wind_speed_unit: 'kmh',
+    });
+    const url = `https://api.open-meteo.com/v1/forecast?${params}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  async function loadWeather() {
+    const container = document.getElementById('weather-container');
+    if (!container) return;
+
+    try {
+      // Paralelní fetch pro všechna města najednou
+      const results = await Promise.all(
+        WEATHER_CITIES.map(city => fetchCityWeather(city).then(data => ({ city, data })).catch(() => null))
+      );
+
+      container.innerHTML = '';
+      renderWeather(container, results);
+
+    } catch (err) {
+      container.innerHTML = `<div class="weather-skeleton" style="color:var(--danger)">⚠️ Nepodařilo se načíst data o počasí. Zkus to za chvíli.</div>`;
+      console.error('Weather fetch error:', err);
+    }
+  }
+
+  /* =========================================================
+     RENDER POČASÍ
+     ========================================================= */
+  function renderWeather(container, results) {
+    const heroResult = results.find(r => r && r.city.hero);
+    const cityResults = results.filter(r => r && !r.city.hero);
+
+    // --- HERO CARD — Nový Bor ---
+    if (heroResult) {
+      const { city, data } = heroResult;
+      const cur = data.current;
+      const daily = data.daily;
+      const weather = wmoToDisplay(cur.weather_code);
+
+      const heroEl = document.createElement('div');
+      heroEl.className = 'weather-hero';
+      heroEl.innerHTML = `
+        <div class="weather-hero-top">
+          <div class="weather-hero-location">
+            <div class="weather-hero-city">📍 ${city.name}</div>
+            <div class="weather-hero-region">${city.region} · Severní Čechy</div>
+          </div>
+          <div class="weather-hero-badge">Hlavní stanice</div>
+        </div>
+        <div class="weather-hero-current">
+          <div class="weather-hero-icon">${weather.icon}</div>
+          <div class="weather-hero-temp-block">
+            <div class="weather-hero-temp">${Math.round(cur.temperature_2m)}°C</div>
+            <div class="weather-hero-desc">${weather.desc}</div>
+          </div>
+          <div class="weather-hero-stats">
+            <div class="weather-stat">
+              <div class="weather-stat-label">Vlhkost</div>
+              <div class="weather-stat-value">${cur.relative_humidity_2m}%</div>
+            </div>
+            <div class="weather-stat">
+              <div class="weather-stat-label">Vítr</div>
+              <div class="weather-stat-value">${Math.round(cur.wind_speed_10m)}<span style="font-size:12px;font-weight:normal"> km/h</span></div>
+            </div>
+            <div class="weather-stat">
+              <div class="weather-stat-label">Max / Min</div>
+              <div class="weather-stat-value">${Math.round(daily.temperature_2m_max[0])}° / ${Math.round(daily.temperature_2m_min[0])}°</div>
+            </div>
+          </div>
+        </div>
+        <div class="forecast-title">VÝHLED NA 10 DNÍ</div>
+        <div class="forecast-strip">
+          ${daily.time.map((dateStr, i) => {
+            const w = wmoToDisplay(daily.weather_code[i]);
+            const rain = daily.precipitation_sum[i];
+            return `
+              <div class="forecast-day">
+                <div class="forecast-day-name ${i === 0 ? 'today' : ''}">${formatDayName(dateStr, i)}</div>
+                <div class="forecast-day-icon">${w.icon}</div>
+                <div class="forecast-day-max">${Math.round(daily.temperature_2m_max[i])}°</div>
+                <div class="forecast-day-min">${Math.round(daily.temperature_2m_min[i])}°</div>
+                ${rain > 0.1 ? `<div class="forecast-day-rain">💧${rain.toFixed(1)}</div>` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+      container.appendChild(heroEl);
+    }
+
+    // --- OSTATNÍ MĚSTA ---
+    if (cityResults.length > 0) {
+      const sectionHeader = document.createElement('div');
+      sectionHeader.className = 'weather-section-header';
+      sectionHeader.innerHTML = `
+        <div class="weather-section-title">Severní Čechy</div>
+        <div class="weather-section-line"></div>
+      `;
+      container.appendChild(sectionHeader);
+
+      const grid = document.createElement('div');
+      grid.className = 'weather-cities-grid';
+
+      cityResults.forEach(result => {
+        if (!result) return;
+        const { city, data } = result;
+        const cur = data.current;
+        const daily = data.daily;
+        const weather = wmoToDisplay(cur.weather_code);
+
+        // Mini forecast — next 5 days (skip today = index 0)
+        const miniForecast = daily.time.slice(1, 6).map((dateStr, i) => {
+          const dayIdx = i + 1;
+          const w = wmoToDisplay(daily.weather_code[dayIdx]);
+          return `
+            <div class="city-forecast-day">
+              <div class="city-fday-name">${formatDayName(dateStr, dayIdx)}</div>
+              <div class="city-fday-icon">${w.icon}</div>
+              <div class="city-fday-max">${Math.round(daily.temperature_2m_max[dayIdx])}°</div>
+            </div>
+          `;
+        }).join('');
+
+        const card = document.createElement('div');
+        card.className = 'weather-city-card';
+        card.innerHTML = `
+          <div class="city-card-top">
+            <div>
+              <div class="city-card-name">${city.name}</div>
+              <div class="city-card-region">${city.region}</div>
+            </div>
+            <div class="city-card-icon">${weather.icon}</div>
+          </div>
+          <div class="city-card-temps">
+            <div class="city-card-temp-current">${Math.round(cur.temperature_2m)}°</div>
+            <div class="city-card-temp-range">${Math.round(daily.temperature_2m_max[0])}° / ${Math.round(daily.temperature_2m_min[0])}°</div>
+          </div>
+          <div class="city-card-desc">${weather.desc} · 💨 ${Math.round(cur.wind_speed_10m)} km/h</div>
+          <div class="city-forecast-mini">${miniForecast}</div>
+        `;
+        grid.appendChild(card);
+      });
+
+      container.appendChild(grid);
+    }
+
+    // Timestamp + zdroj
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
+    const footer = document.createElement('div');
+    footer.className = 'weather-updated';
+    footer.innerHTML = `
+      Aktualizováno dnes v ${timeStr} &nbsp;·&nbsp; 
+      <span class="weather-source-badge">🌐 Open-Meteo API</span>
+    `;
+    container.appendChild(footer);
+  }
+
+  /* =========================================================
+     TABS
+     ========================================================= */
+  function switchTab(tab, btn) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.getElementById('news-container').style.display = tab === 'news' ? 'flex' : 'none';
+    document.getElementById('radio-container').style.display = tab === 'radio' ? 'grid' : 'none';
+    document.getElementById('weather-container').style.display = tab === 'weather' ? 'flex' : 'none';
+
+    // Lazy load počasí — načte se jen jednou při první návštěvě záložky
+    if (tab === 'weather' && !weatherLoaded) {
+      weatherLoaded = true;
+      loadWeather();
+    }
+  }
+
+  /* =========================================================
+     REFRESH TLAČÍTKO — kontextové (funguje pro aktuální záložku)
+     ========================================================= */
+  function onRefreshClick() {
+    if (currentTab === 'weather') {
+      refreshWeather();
+    } else {
+      refreshData(true);
+    }
+  }
+
+  async function refreshWeather() {
+    const btn = document.getElementById('refresh-btn');
+    if (btn) { btn.classList.add('spin'); btn.innerText = '⏳ Načítám...'; }
+    const container = document.getElementById('weather-container');
+    if (container) container.innerHTML = '<div class="weather-skeleton"><div class="weather-loading-text">⛅ Aktualizuji data o počasí...</div></div>';
+
+    await loadWeather();
+
+    if (btn) { btn.classList.remove('spin'); btn.innerText = '🔄 Obnovit'; }
+  }
+
+  /* =========================================================
+     NEWS & RADIO
+     ========================================================= */
   async function init() {
     try {
-      // ENDGAME: Taháme data přímo z GitHubu! 
       const githubRawUrl = 'https://raw.githubusercontent.com/ondrex-ember/gejza-news/main/data.json';
       const cacheBuster = '?v=' + new Date().getTime();
-      
       const response = await fetch(githubRawUrl + cacheBuster);
       appData = await response.json();
-      
       renderRadio();
       renderNews();
     } catch (err) {
       const container = document.getElementById('news-container');
-      if (container) container.innerHTML = `<div class="loading" style="color:var(--danger)">Chyba: Nepodařilo se stáhnout živá data z GitHubu. Zkontroluj URL adresu.</div>`;
+      if (container) container.innerHTML = `<div class="loading" style="color:var(--danger)">Chyba: Nepodařilo se stáhnout živá data z GitHubu.</div>`;
     }
   }
 
-  // Nová funkce pro tiché obnovení dat
   async function refreshData(isManual = false) {
     const btn = document.getElementById('refresh-btn');
-    
-    // Pokud na to klikl uživatel, ukážeme mu, že se něco děje
-    if (isManual && btn) {
-      btn.classList.add('loading');
-      btn.innerText = "⏳ Načítám...";
-    }
-
+    if (isManual && btn) { btn.classList.add('spin'); btn.innerText = '⏳ Načítám...'; }
     try {
       const githubRawUrl = 'https://raw.githubusercontent.com/ondrex-ember/gejza-news/main/data.json';
-      const cacheBuster = '?v=' + new Date().getTime(); // Finta proti cachování
-      
+      const cacheBuster = '?v=' + new Date().getTime();
       const response = await fetch(githubRawUrl + cacheBuster);
       const newData = await response.json();
-      
-      // Potichu přepíšeme data v paměti
       appData = newData;
-      
-      // Znovu vykreslíme obsah na obrazovce (rádio to nepřeruší!)
       renderNews();
-      renderRadio(); 
-
+      renderRadio();
     } catch (err) {
-      console.error("Chyba při obnově dat:", err);
+      console.error('Chyba při obnově dat:', err);
     } finally {
-      // Vrátíme tlačítko do normálu
-      if (isManual && btn) {
-        btn.classList.remove('loading');
-        btn.innerText = "🔄 Obnovit";
-      }
+      if (isManual && btn) { btn.classList.remove('spin'); btn.innerText = '🔄 Obnovit'; }
     }
   }
 
   function switchTab(tab, btn) {
+    currentTab = tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('news-container').style.display = tab === 'news' ? 'flex' : 'none';
     document.getElementById('radio-container').style.display = tab === 'radio' ? 'grid' : 'none';
+    document.getElementById('weather-container').style.display = tab === 'weather' ? 'flex' : 'none';
+    if (tab === 'weather' && !weatherLoaded) {
+      weatherLoaded = true;
+      loadWeather();
+    }
   }
 
   function renderRadio() {
     const radioContainer = document.getElementById('radio-container');
     if (!radioContainer) return;
     radioContainer.innerHTML = '';
-
     const radioIconSvg = `<svg class="radio-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2" ry="2"></rect><circle cx="8" cy="14" r="2"></circle><path d="M22 7l-7-5-2 2"></path><circle cx="16" cy="14" r="1"></circle><circle cx="16" cy="16" r="1"></circle></svg>`;
-
     appData.radio.forEach(stream => {
       radioContainer.innerHTML += `
         <div class="radio-card">
@@ -490,7 +1114,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function playStation(url, label) {
     if (globalPlayer) globalPlayer.style.display = 'flex';
     if (stationNameEl) stationNameEl.innerText = label;
-    if (mainPlayBtn) { mainPlayBtn.innerText = "⏸ STOP"; mainPlayBtn.style.background = "var(--text)"; }
+    if (mainPlayBtn) { mainPlayBtn.innerText = '⏸ STOP'; mainPlayBtn.style.background = 'var(--text)'; }
     if (audio) { audio.src = url; audio.play(); }
   }
 
@@ -498,60 +1122,51 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if (!audio) return;
     if (audio.paused) {
       audio.play();
-      if(mainPlayBtn) { mainPlayBtn.innerText = "⏸ STOP"; mainPlayBtn.style.background = "var(--text)"; }
+      if(mainPlayBtn) { mainPlayBtn.innerText = '⏸ STOP'; mainPlayBtn.style.background = 'var(--text)'; }
     } else {
       audio.pause();
-      if(mainPlayBtn) { mainPlayBtn.innerText = "► HRÁT"; mainPlayBtn.style.background = "var(--act)"; }
+      if(mainPlayBtn) { mainPlayBtn.innerText = '► HRÁT'; mainPlayBtn.style.background = 'var(--act)'; }
     }
   }
 
   function changeVolume(val) { if (audio) audio.volume = val; }
 
-  // LOGIKA ZPRÁV (Parsování probíhá na klientovi bleskurychle z paměti)
   function renderNews() {
     const mainContainer = document.getElementById('news-container');
     if (!mainContainer) return;
-    mainContainer.innerHTML = ''; 
-
+    mainContainer.innerHTML = '';
     appData.news.forEach(feed => {
       const limit = feed.limit ? parseInt(feed.limit) : 10;
-      const text = feed.rawText; // Obsah vygenerovaný robotem
+      const text = feed.rawText;
       let normalizedItems = [];
-
       try {
-        // Zkusí JSON
         const data = JSON.parse(text);
         let itemsArray = Array.isArray(data) ? data : (data.items || data.articles || data.data || []);
         normalizedItems = itemsArray.slice(0, limit).map(item => {
-          let desc = item.description || item.summary || item.content_text || "";
+          let desc = item.description || item.summary || item.content_text || '';
           if (!desc && item.source) {
              desc = `📍 Region: ${item.region || 'Neznámý'} | 📰 Typ: ${item.type || 'Událost'} | 📡 Zdroj: ${item.source}`;
              if (item.score) desc += ` | ⚠️ Skóre: ${item.score}`;
           }
-          return { title: item.title || item.name || "Bez titulku", link: item.url || item.link || "#", description: desc.replace(/<[^>]*>/g, '').substring(0, 180) + "..." };
+          return { title: item.title || item.name || 'Bez titulku', link: item.url || item.link || '#', description: desc.replace(/<[^>]*>/g, '').substring(0, 180) + '...' };
         });
       } catch(e) {
-        // Zkusí XML/RSS
         const parser = new DOMParser();
-        const xml = parser.parseFromString(text, "text/xml");
-        const items = xml.querySelectorAll("item, entry");
+        const xml = parser.parseFromString(text, 'text/xml');
+        const items = xml.querySelectorAll('item, entry');
         normalizedItems = Array.from(items).slice(0, limit).map(item => {
-          const title = item.querySelector("title")?.textContent;
-          const link = (item.querySelector("link")?.textContent) || (item.querySelector("link")?.getAttribute("href"));
-          const description = item.querySelector("description, summary")?.textContent || "";
-          return { title: title || "Bez titulku", link: link || "#", description: description.replace(/<[^>]*>/g, '').substring(0, 180) + "..." };
+          const title = item.querySelector('title')?.textContent;
+          const link = (item.querySelector('link')?.textContent) || (item.querySelector('link')?.getAttribute('href'));
+          const description = item.querySelector('description, summary')?.textContent || '';
+          return { title: title || 'Bez titulku', link: link || '#', description: description.replace(/<[^>]*>/g, '').substring(0, 180) + '...' };
         });
       }
-
       if (normalizedItems.length === 0) return;
-
       const sectionDiv = document.createElement('div');
       sectionDiv.className = 'feed-section';
       sectionDiv.innerHTML = `<h2 class="feed-section-title"><span style="color: var(--act)">#</span> ${feed.label}</h2>`;
-      
       const gridDiv = document.createElement('div');
       gridDiv.className = 'feed-grid';
-
       normalizedItems.forEach(item => {
         gridDiv.innerHTML += `
           <div class="news-item">
@@ -559,7 +1174,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <div class="news-perex">${item.description}</div>
           </div>`;
       });
-
       sectionDiv.appendChild(gridDiv);
       mainContainer.appendChild(sectionDiv);
     });
@@ -569,7 +1183,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     document.body.className = 'theme-' + theme;
     localStorage.setItem('pref-theme', theme);
     document.querySelectorAll('.t-btn').forEach(btn => {
-      btn.style.borderColor = 'var(--border)'; 
+      btn.style.borderColor = 'var(--border)';
       btn.style.transform = 'scale(1)';
       if (btn.getAttribute('data-theme') === theme) {
         btn.style.borderColor = 'var(--act)';
@@ -580,13 +1194,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   const savedTheme = localStorage.getItem('pref-theme') || 'dark';
   setTheme(savedTheme);
-  
-  // První načtení při startu
-  init();
-  
-  // AUTO-REFRESH: Spustí funkci refreshData() automaticky každých 5 minut (300 000 milisekund)
-  setInterval(() => refreshData(false), 300000); 
 
+  init();
+  setInterval(() => refreshData(false), 300000);
+  // Počasí se auto-refreshuje každých 30 minut, pokud je záložka aktivní
+  setInterval(() => {
+    if (currentTab === 'weather' && weatherLoaded) {
+      loadWeather();
+    }
+  }, 1800000);
 </script>
 </body>
 </html>
