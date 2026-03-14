@@ -1255,7 +1255,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 /* ═══════════════════════════════════════════════════════════════
    ⚙️  NASTAV SVOJI GAS URL (po novém deploy → ?format=json)
    ═══════════════════════════════════════════════════════════════ */
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbz_-x5owHB7b9lLSroTZrg0H_xIw3ssU2zMsUUUGx8wEr_3MTc2j3cO9eludjgiYFo/exec';
+const GAS_API_URL = 'VLOZ_SVOJI_GAS_EXEC_URL_SEM';
  
 /* ── Stav ─────────────────────────────────────────────────────── */
 let srLoaded   = false;
@@ -1353,8 +1353,8 @@ async function initSmartRegion() {
   document.getElementById('sr-gran').addEventListener('change', e => srFetch(srDays, e.target.value));
  
   srBuildChecks();
-  srInitMap();
-  srFetch(7, 'auto');
+  // Mapa: init az po 300ms aby mel kontejner jiste rozmery
+  setTimeout(() => { srInitMap(); srFetch(7, 'auto'); }, 300);
   srLoadDoprava();
   setInterval(srLoadDoprava, 5 * 60 * 1000);
 }
@@ -1508,22 +1508,31 @@ function srInitMap() {
   if (!window.L) return;
   const el = document.getElementById('sr-map');
   if (!el || srMap) return;
-  srMap = L.map('sr-map').setView([50.7600, 14.5571], 12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OSM' }).addTo(srMap);
-  // Leaflet fix: kontejner byl skrytý při init, přepočítat rozměry
-  setTimeout(() => srMap.invalidateSize(), 100);
+  srMap = L.map('sr-map', { preferCanvas: true }).setView([50.7600, 14.5571], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OSM',
+    maxZoom: 18,
+  }).addTo(srMap);
+  // Agresivní fix: invalidateSize vícekrát po sobě
+  setTimeout(() => srMap.invalidateSize(true), 100);
+  setTimeout(() => srMap.invalidateSize(true), 400);
+  setTimeout(() => srMap.invalidateSize(true), 800);
 }
 function srRenderMap(data) {
   if (!window.L || !srMap) return;
-  srMap.eachLayer(l => { if (l instanceof L.Marker) l.remove(); });
+  // Nejdřív invalidate, pak přidej markery
+  srMap.invalidateSize(true);
+  srMap.eachLayer(l => { if (l instanceof L.Marker || l instanceof L.CircleMarker) l.remove(); });
   const seen = new Set();
   const clr = { Počasí:'#0dcaf0', Ovzduší:'#dc3545', Plyn:'#ffc107', Půda:'#198754', Voda:'#0d6efd', Radiace:'#6f42c1', Doprava:'#adb5bd' };
+  const bounds = [];
   data.forEach(row => {
     const lat=parseFloat(row[13]), lon=parseFloat(row[14]), id=row[15], type=row[2];
     if (!seen.has(id) && !isNaN(lat) && !isNaN(lon)) {
       seen.add(id);
+      bounds.push([lat, lon]);
       const c = clr[type]||'#ffae00';
-      const icon = L.divIcon({ html:`<div style="background:${c};width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px ${c}88;"></div>`, iconSize:[12,12], iconAnchor:[6,6], className:'' });
+      const icon = L.divIcon({ html:`<div style="background:${c};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px ${c}99;"></div>`, iconSize:[14,14], iconAnchor:[7,7], className:'' });
       let popup=`<b>${row[1]}</b><br><small>${type}</small><br>`;
       if(type==='Počasí')  popup+=`${row[3]} °C | ${row[5]} km/h`;
       if(type==='Ovzduší') popup+=`PM10: ${row[6]} | PM2.5: ${row[7]}`;
@@ -1534,6 +1543,12 @@ function srRenderMap(data) {
       L.marker([lat,lon],{icon}).addTo(srMap).bindPopup(popup);
     }
   });
+  // Přizpůsob pohled na senzory pokud existují
+  if (bounds.length > 0) {
+    try { srMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 }); } catch(e) {}
+  }
+  // Finální invalidate po přidání markerů
+  setTimeout(() => srMap.invalidateSize(true), 150);
 }
  
 /* ── Doprava live ─────────────────────────────────────────────── */
