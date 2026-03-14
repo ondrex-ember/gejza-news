@@ -1081,10 +1081,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     if (tab === 'weather' && !weatherLoaded) { weatherLoaded = true; loadWeather(); }
     if (tab === 'smartregion' && !srLoaded)  { srLoaded = true; initSmartRegion(); }
-    if (tab === 'smartregion' && srMap) {
-      setTimeout(() => srMap.invalidateSize(true), 100);
-      setTimeout(() => srMap.invalidateSize(true), 500);
-      setTimeout(() => srMap.invalidateSize(true), 1000);
+    if (tab === 'smartregion') {
+      // Dvojitý rAF zajistí že prohlížeč dopočítal layout před Leafletem
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (srMap) srMap.invalidateSize(true);
+      }));
     }
   }
 
@@ -1358,8 +1359,9 @@ async function initSmartRegion() {
   document.getElementById('sr-gran').addEventListener('change', e => srFetch(srDays, e.target.value));
  
   srBuildChecks();
-  // Mapa: init az po 300ms aby mel kontejner jiste rozmery
-  setTimeout(() => { srInitMap(); srFetch(7, 'auto'); }, 300);
+  // Mapa init + fetch dat
+  srInitMap();
+  srFetch(7, 'auto');
   srLoadDoprava();
   setInterval(srLoadDoprava, 5 * 60 * 1000);
 }
@@ -1417,7 +1419,9 @@ function srOnData(result) {
   const info = document.getElementById('sr-info');
   if (info) info.textContent = (agg.length || rows.length) + ' bodů · ' + (granLbl[gran] || gran);
   srRenderChart(agg, rows, gran);
-  srRenderMap(rows);
+  // Mapa: znovu init pokud ještě nemá správnou velikost, pak render
+  if (!srMap) srInitMap();
+  requestAnimationFrame(() => requestAnimationFrame(() => srRenderMap(rows)));
 }
  
 /* ── Graf ─────────────────────────────────────────────────────── */
@@ -1512,20 +1516,20 @@ function srFmtLbl(k, gran) {
 function srInitMap() {
   if (!window.L) return;
   const el = document.getElementById('sr-map');
-  if (!el || srMap) return;
-  srMap = L.map('sr-map', { preferCanvas: true }).setView([50.7600, 14.5571], 12);
+  if (!el) return;
+  // Pokud mapa existuje, zničíme ji a vytvoříme znovu — nejspolehlivější fix
+  if (srMap) { srMap.remove(); srMap = null; }
+  srMap = L.map('sr-map').setView([50.7600, 14.5571], 12);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OSM',
-    maxZoom: 18,
+    attribution: '© OSM', maxZoom: 18
   }).addTo(srMap);
-  // Agresivní fix: invalidateSize vícekrát po sobě
-  setTimeout(() => srMap.invalidateSize(true), 100);
-  setTimeout(() => srMap.invalidateSize(true), 400);
-  setTimeout(() => srMap.invalidateSize(true), 800);
+  // rAF dvojitý = zaručeně po layoutu
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (srMap) srMap.invalidateSize(true);
+  }));
 }
 function srRenderMap(data) {
   if (!window.L || !srMap) return;
-  srMap.invalidateSize(true);
   srMap.eachLayer(l => { if (l instanceof L.Marker || l instanceof L.CircleMarker) l.remove(); });
   const seen = new Set();
   const clr = { Počasí:'#0dcaf0', Ovzduší:'#dc3545', Plyn:'#ffc107', Půda:'#198754', Voda:'#0d6efd', Radiace:'#6f42c1', Doprava:'#adb5bd' };
