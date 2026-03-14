@@ -1533,11 +1533,9 @@ function srRenderMap(data) {
 
   data.forEach(row => {
     
-	// OPRAVA INDEXŮ PODLE TABULKY (Sloupce v Google Sheets začínají od A=0, B=1, C=2, D=3, E=4)
-	// Název = row[1], Typ = row[2], Lat = row[3], Lon = row[4]
-	// Pokud by to zlobilo, vrať sem to původní: const lat=parseFloat(row[13]), lon=parseFloat(row[14]), id=row[15], type=row[2];
-	const lat=parseFloat(row[3]), lon=parseFloat(row[4]), id=row[1], type=row[2];
-	
+    // ZDE JE TA OPRAVA ZPĚT: Indexy 13, 14 a 15 jsou správně, protože GAS připojuje souřadnice na konec pole měření
+    const lat=parseFloat(row[13]), lon=parseFloat(row[14]), id=row[15], type=row[2];
+    
     const validCoord = !isNaN(lat) && !isNaN(lon) && lat > CZ.latMin && lat < CZ.latMax && lon > CZ.lonMin && lon < CZ.lonMax;
     if (!seen.has(id) && validCoord) {
       seen.add(id);
@@ -1545,8 +1543,7 @@ function srRenderMap(data) {
       const c = clr[type]||'#ffae00';
       const icon = L.divIcon({ html:`<div style="background:${c};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px ${c}99;"></div>`, iconSize:[14,14], iconAnchor:[7,7], className:'' });
       
-	  // Použit row[1] místo row[1] (název)
-	  let popup=`<b>${row[1]}</b><br><small>${type}</small><br>`;
+      let popup=`<b>${row[1]}</b><br><small>${type}</small><br>`;
       if(type==='Počasí')  popup+=`${row[3]} °C | ${row[5]} km/h`;
       if(type==='Ovzduší') popup+=`PM10: ${row[6]} | PM2.5: ${row[7]}`;
       if(type==='Plyn')    popup+=`NO2: ${row[8]} µg/m³`;
@@ -1556,6 +1553,15 @@ function srRenderMap(data) {
       L.marker([lat,lon],{icon}).addTo(srMap).bindPopup(popup);
     }
   });
+
+  // Nejdřív invalidate, pak fitBounds
+  srMap.invalidateSize(true);
+  if (validBounds.length > 0) {
+    try { srMap.fitBounds(validBounds, { padding: [40, 40], maxZoom: 14 }); } catch(e) {}
+  } else {
+    srMap.setView([50.7600, 14.5571], 12);
+  }
+}
 
   // Nejdřív invalidate, pak fitBounds
   srMap.invalidateSize(true);
