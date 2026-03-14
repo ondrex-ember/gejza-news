@@ -25,8 +25,10 @@ async function fetchDendroGraph(stationId) {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                // Zásadní: maskujeme se jako běžný prohlížeč, jinak nás firewall může zablokovat
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                // Tady jsou ty dva nové magické řádky:
+                'Origin': 'https://dendronet.cz',
+                'Referer': `https://dendronet.cz/location/${stationId}`
             },
             body: JSON.stringify(payload)
         });
