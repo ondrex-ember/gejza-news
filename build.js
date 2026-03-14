@@ -3,17 +3,21 @@ const fs = require('fs');
 // URL si GitHub přečte ze svých tajných Secrets
 const GAS_URL = process.env.GAS_URL; 
 
+
 // --- NOVÉ: Pomocné funkce pro DendroNet ---
+
+// 1. Dekódovací funkce (tahle nám tam teď chyběla!)
 function decodeB64Float(b64) {
     const raw = Buffer.from(b64, 'base64');
     const float64Array = new Float64Array(raw.buffer, raw.byteOffset, raw.length / 8);
     return Array.from(float64Array);
 }
 
+// 2. Hlavní stahovací funkce
 async function fetchDendroGraph(stationId) {
     const url = 'https://dendronet.cz/_dash-update-component';
     
-    // NOVÉ TAJNÉ HESLO (Payload) zjištěné přímo z prohlížeče
+    // Tajné heslo
     const payload = {
         "output": ".._pages_content.children..._pages_store.data..",
         "outputs": [
@@ -51,27 +55,23 @@ async function fetchDendroGraph(stationId) {
         
         const json = await res.json();
         
-        // CHYTRÝ HLEDAČ: Jelikož teď server vrací celou strukturu stránky,
-        // musíme v tom JSONu najít to správné pole s daty (traces).
+        // CHYTRÝ HLEDAČ
         let traces = null;
         function findTraces(obj) {
             if (!obj || typeof obj !== 'object') return;
-            if (traces) return; // už jsme našli, končíme
+            if (traces) return;
             
             if (Array.isArray(obj)) {
                 for (let item of obj) findTraces(item);
             } else {
-                // Hledáme objekt, který má 'data' a uvnitř jsou stopy s 'bdata'
                 if (obj.data && Array.isArray(obj.data) && obj.data.some(t => t.y && t.y.bdata)) {
                     traces = obj.data;
                     return;
                 }
-                // Jinak prohledáme všechny vnořené vlastnosti
                 for (let key in obj) findTraces(obj[key]);
             }
         }
 
-        // Spustíme hledače na celou odpověď od serveru
         findTraces(json);
         
         if (!traces) {
@@ -84,7 +84,8 @@ async function fetchDendroGraph(stationId) {
 
         traces.forEach(t => {
             if (!t.name || !t.y || !t.y.bdata) return;
-            // Tady využijeme tvoji dekódovací funkci
+            
+            // TADY TO PADALO - teď už funkce decodeB64Float bezpečně existuje hned nahoře
             const vals = decodeB64Float(t.y.bdata).map(v => isNaN(v) ? null : v);
 
             if (t.name.includes("Air Temperature")) {
@@ -102,6 +103,7 @@ async function fetchDendroGraph(stationId) {
         return null; 
     }
 }
+// --- KONEC NOVÝCH FUNKCÍ ---
 // --- KONEC NOVÝCH FUNKCÍ ---
 
 
