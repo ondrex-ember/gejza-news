@@ -1562,15 +1562,6 @@ function srRenderMap(data) {
     srMap.setView([50.7600, 14.5571], 12);
   }
 }
-
-  // Nejdřív invalidate, pak fitBounds
-  srMap.invalidateSize(true);
-  if (validBounds.length > 0) {
-    try { srMap.fitBounds(validBounds, { padding: [40, 40], maxZoom: 14 }); } catch(e) {}
-  } else {
-    srMap.setView([50.7600, 14.5571], 12);
-  }
-}
  
 /* ── Doprava live ─────────────────────────────────────────────── */
 async function srLoadDoprava() {
