@@ -1644,6 +1644,7 @@ async function initNature() {
     await srLoadDeps(); // Načtení Chart.js (využíváme tvou existující funkci)
 
     // Data už máme stažená od našeho robota v build.js!
+	console.log("Co mi přišlo za data:", appData.nature); // <--- Přidej tohle
     if (appData.nature) {
         renderNatureChart('chart-jetrichovice', appData.nature.jetrichovice);
         renderNatureChart('chart-ralsko', appData.nature.ralsko);
