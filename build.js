@@ -23,12 +23,28 @@ async function fetchDendroGraph(stationId) {
         console.log(`Stahuji les z DendroNetu: ${stationId}`);
         const res = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                // Zásadní: maskujeme se jako běžný prohlížeč, jinak nás firewall může zablokovat
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            },
             body: JSON.stringify(payload)
         });
         
+        // Pokud server nevrátí kód 200 (OK), zjistíme proč
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`HTTP chyba ${res.status}: ${errText.substring(0, 100)}`);
+        }
+        
         const json = await res.json();
-        const traces = json.response["main-figure"].figure.data;
+        
+        // Bezpečné zanoření (tzv. optional chaining). Pokud něco chybí, nepadne to, ale vrátí undefined.
+        const traces = json?.response?.["main-figure"]?.figure?.data;
+        
+        if (!traces) {
+            throw new Error("V odpovědi chybí data grafu (změnila se struktura webu DendroNet?)");
+        }
 
         let times = [];
         let temp = [];
@@ -49,8 +65,9 @@ async function fetchDendroGraph(stationId) {
 
         return { times, temp, soil };
     } catch (e) {
-        console.error(`Chyba stahování DendroNetu u ${stationId}:`, e.message);
-        return null;
+        // Tady teď uvidíme přesný důvod, proč to krachlo!
+        console.error(`❌ Chyba stahování DendroNetu u ${stationId}:`, e.message);
+        return null; 
     }
 }
 // --- KONEC NOVÝCH FUNKCÍ ---
