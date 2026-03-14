@@ -29,6 +29,9 @@
 <meta name="twitter:title" content="Jouza Radio & News">
 <meta name="twitter:description" content="Online rádio a zprávy z ČR.">
 <meta name="twitter:image" content="https://newsandradio.cz/og-image.jpg">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -41,21 +44,18 @@
 }
 </script>
 <meta name="google-site-verification" content="fUTIbVHhDFGfNU_2_WQz5-di96y7zUNTI7J6PI4Wb-w" />
-<!-- Google tag (gtag.js) -->
-	<script async src="https://www.googletagmanager.com/gtag/js?id=G-4K77WLE5F5"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4K77WLE5F5"></script>
 	<script>
   	window.dataLayer = window.dataLayer || [];
   	function gtag(){dataLayer.push(arguments);}
   	gtag('js', new Date());
   	gtag('config', 'G-4K77WLE5F5');
 	</script>
-<!-- Google Tag Manager -->
-	<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 	new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 	j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 	'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 	})(window,document,'script','dataLayer','GTM-MTWGJW5D');</script>
-<!-- End Google Tag Manager -->
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
@@ -703,9 +703,9 @@
   .sr-section-title  { font-size:13px; font-weight:bold; text-transform:uppercase; letter-spacing:2px; color:var(--muted); white-space:nowrap; }
   .sr-section-line   { flex:1; height:1px; background:var(--border); }
  
-  /* Karta */
+  /* OPRAVA: Map Container (přidáno overflow:hidden) */
   .sr-card        { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
-  .sr-card-map    { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:visible; }
+  .sr-card-map    { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; } 
   .sr-card-header { padding:13px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
   .sr-card-title  { font-size:13px; font-weight:bold; color:var(--text); }
   .sr-card-body   { padding:16px 18px; }
@@ -733,8 +733,8 @@
   .sr-chart-wrap    { position:relative; padding:16px 18px; height:260px; }
   .sr-chart-loading { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--card); border:1px solid var(--border); padding:7px 16px; border-radius:8px; font-size:12px; color:var(--muted); display:none; }
  
-  /* Mapa */
-  #sr-map { height:320px; position:relative; overflow:visible !important; z-index:1; }
+  /* OPRAVA: Mapa (odstraněno overflow:visible !important) */
+  #sr-map { height:320px; position:relative; z-index:1; }
  
   /* Doprava */
   .sr-doprava-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -757,11 +757,8 @@
   </style>
 </head>
 <body class="theme-dark">
-	<!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MTWGJW5D"
+	<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MTWGJW5D"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
-
 <header>
   <div style="font-weight: bold; letter-spacing: 1px; font-size: 28px;">Jouza <span style="color: var(--act)">Radio&News</span></div>
   <div class="theme-picker">
@@ -1296,7 +1293,6 @@ async function initSmartRegion() {
       <span id="sr-info" style="font-size:11px;color:var(--muted);white-space:nowrap;"></span>
     </div>
  
-    <!-- GRAF -->
     <div class="sr-card">
       <div class="sr-card-header">
         <div class="sr-card-title">📈 Historie měření</div>
@@ -1324,13 +1320,11 @@ async function initSmartRegion() {
       </div>
     </div>
  
-    <!-- MAPA -->
     <div class="sr-card-map">
       <div class="sr-card-header"><div class="sr-card-title">🗺️ Mapa senzorů</div></div>
       <div id="sr-map"></div>
     </div>
  
-    <!-- DOPRAVA -->
     <div class="sr-card">
       <div class="sr-card-header">
         <div class="sr-card-title">🚗 Doprava I/9 – Nový Bor (live)</div>
@@ -1538,14 +1532,21 @@ function srRenderMap(data) {
   const CZ = { latMin:48.5, latMax:51.1, lonMin:12.0, lonMax:18.9 };
 
   data.forEach(row => {
-    const lat=parseFloat(row[13]), lon=parseFloat(row[14]), id=row[15], type=row[2];
+    
+	// OPRAVA INDEXŮ PODLE TABULKY (Sloupce v Google Sheets začínají od A=0, B=1, C=2, D=3, E=4)
+	// Název = row[1], Typ = row[2], Lat = row[3], Lon = row[4]
+	// Pokud by to zlobilo, vrať sem to původní: const lat=parseFloat(row[13]), lon=parseFloat(row[14]), id=row[15], type=row[2];
+	const lat=parseFloat(row[3]), lon=parseFloat(row[4]), id=row[1], type=row[2];
+	
     const validCoord = !isNaN(lat) && !isNaN(lon) && lat > CZ.latMin && lat < CZ.latMax && lon > CZ.lonMin && lon < CZ.lonMax;
     if (!seen.has(id) && validCoord) {
       seen.add(id);
       validBounds.push([lat, lon]);
       const c = clr[type]||'#ffae00';
       const icon = L.divIcon({ html:`<div style="background:${c};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px ${c}99;"></div>`, iconSize:[14,14], iconAnchor:[7,7], className:'' });
-      let popup=`<b>${row[1]}</b><br><small>${type}</small><br>`;
+      
+	  // Použit row[1] místo row[1] (název)
+	  let popup=`<b>${row[1]}</b><br><small>${type}</small><br>`;
       if(type==='Počasí')  popup+=`${row[3]} °C | ${row[5]} km/h`;
       if(type==='Ovzduší') popup+=`PM10: ${row[6]} | PM2.5: ${row[7]}`;
       if(type==='Plyn')    popup+=`NO2: ${row[8]} µg/m³`;
