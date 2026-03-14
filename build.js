@@ -12,11 +12,23 @@ function decodeB64Float(b64) {
 
 async function fetchDendroGraph(stationId) {
     const url = 'https://dendronet.cz/_dash-update-component';
+    
+    // NOVÉ TAJNÉ HESLO (Payload) zjištěné přímo z prohlížeče
     const payload = {
-        "output": "main-figure.figure",
-        "outputs": { "id": "main-figure", "property": "figure" },
-        "inputs": [{ "id": "url", "property": "pathname", "value": `/location/${stationId}` }],
-        "changedPropIds": ["url.pathname"]
+        "output": ".._pages_content.children..._pages_store.data..",
+        "outputs": [
+            { "id": "_pages_content", "property": "children" },
+            { "id": "_pages_store", "property": "data" }
+        ],
+        "inputs": [
+            { "id": "_pages_location", "property": "pathname", "value": `/location/${stationId}` },
+            { "id": "_pages_location", "property": "search", "value": "" },
+            { "id": "lang-store", "property": "data", "value": "cz" }
+        ],
+        "changedPropIds": [
+            "_pages_location.pathname",
+            "_pages_location.search"
+        ]
     };
 
     try {
@@ -26,14 +38,12 @@ async function fetchDendroGraph(stationId) {
             headers: { 
                 'Content-Type': 'application/json',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                // Tady jsou ty dva nové magické řádky:
                 'Origin': 'https://dendronet.cz',
                 'Referer': `https://dendronet.cz/location/${stationId}`
             },
             body: JSON.stringify(payload)
         });
         
-        // Pokud server nevrátí kód 200 (OK), zjistíme proč
         if (!res.ok) {
             const errText = await res.text();
             throw new Error(`HTTP chyba ${res.status}: ${errText.substring(0, 100)}`);
@@ -41,11 +51,31 @@ async function fetchDendroGraph(stationId) {
         
         const json = await res.json();
         
-        // Bezpečné zanoření (tzv. optional chaining). Pokud něco chybí, nepadne to, ale vrátí undefined.
-        const traces = json?.response?.["main-figure"]?.figure?.data;
+        // CHYTRÝ HLEDAČ: Jelikož teď server vrací celou strukturu stránky,
+        // musíme v tom JSONu najít to správné pole s daty (traces).
+        let traces = null;
+        function findTraces(obj) {
+            if (!obj || typeof obj !== 'object') return;
+            if (traces) return; // už jsme našli, končíme
+            
+            if (Array.isArray(obj)) {
+                for (let item of obj) findTraces(item);
+            } else {
+                // Hledáme objekt, který má 'data' a uvnitř jsou stopy s 'bdata'
+                if (obj.data && Array.isArray(obj.data) && obj.data.some(t => t.y && t.y.bdata)) {
+                    traces = obj.data;
+                    return;
+                }
+                // Jinak prohledáme všechny vnořené vlastnosti
+                for (let key in obj) findTraces(obj[key]);
+            }
+        }
+
+        // Spustíme hledače na celou odpověď od serveru
+        findTraces(json);
         
         if (!traces) {
-            throw new Error("V odpovědi chybí data grafu (změnila se struktura webu DendroNet?)");
+            throw new Error("Graf nebyl v odpovědi nalezen. Struktura webu se asi zase změnila.");
         }
 
         let times = [];
@@ -54,6 +84,7 @@ async function fetchDendroGraph(stationId) {
 
         traces.forEach(t => {
             if (!t.name || !t.y || !t.y.bdata) return;
+            // Tady využijeme tvoji dekódovací funkci
             const vals = decodeB64Float(t.y.bdata).map(v => isNaN(v) ? null : v);
 
             if (t.name.includes("Air Temperature")) {
@@ -67,7 +98,6 @@ async function fetchDendroGraph(stationId) {
 
         return { times, temp, soil };
     } catch (e) {
-        // Tady teď uvidíme přesný důvod, proč to krachlo!
         console.error(`❌ Chyba stahování DendroNetu u ${stationId}:`, e.message);
         return null; 
     }
