@@ -1081,8 +1081,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     if (tab === 'weather' && !weatherLoaded) { weatherLoaded = true; loadWeather(); }
     if (tab === 'smartregion' && !srLoaded)  { srLoaded = true; initSmartRegion(); }
-    if (tab === 'smartregion' && srMap) {
-      setTimeout(() => srMap.invalidateSize(true), 0);
+    if (tab === 'smartregion') {
+      if (srMap) srMap.invalidateSize(true);
     }
   }
 
@@ -1356,12 +1356,8 @@ async function initSmartRegion() {
   document.getElementById('sr-gran').addEventListener('change', e => srFetch(srDays, e.target.value));
  
   srBuildChecks();
-  // setTimeout(0) = jeden JS tick delay → prohlížeč stihne reflow po display:flex
-  // bez toho Leaflet neví jaká je šířka kontejneru → split tiles
-  setTimeout(() => {
-    srInitMap();
-    srFetch(7, 'auto');
-  }, 0);
+  srInitMap();   // ResizeObserver uvnitř čeká na reálné rozměry
+  srFetch(7, 'auto');
   srLoadDoprava();
   setInterval(srLoadDoprava, 5 * 60 * 1000);
 }
@@ -1512,14 +1508,24 @@ function srFmtLbl(k, gran) {
  
 /* ── Mapa ─────────────────────────────────────────────────────── */
 function srInitMap() {
-  if (!window.L || srMap) return;  // init jen jednou
+  if (!window.L) return;
   const el = document.getElementById('sr-map');
   if (!el) return;
-  srMap = L.map('sr-map').setView([50.7600, 14.5571], 12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OSM', maxZoom: 18
-  }).addTo(srMap);
-  setTimeout(() => { if (srMap) srMap.invalidateSize(true); }, 250);
+  if (srMap) { srMap.invalidateSize(true); return; }
+
+  // ResizeObserver: inicializuj mapu až má kontejner skutečné rozměry
+  const ro = new ResizeObserver((entries) => {
+    const rect = entries[0].contentRect;
+    if (rect.width > 0 && rect.height > 0) {
+      ro.disconnect();
+      if (srMap) return;
+      srMap = L.map('sr-map').setView([50.7600, 14.5571], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OSM', maxZoom: 18
+      }).addTo(srMap);
+    }
+  });
+  ro.observe(el);
 }
 function srRenderMap(data) {
   if (!window.L || !srMap) return;
