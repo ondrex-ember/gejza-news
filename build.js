@@ -13,11 +13,9 @@ function decodeB64Float(b64) {
     return Array.from(float64Array);
 }
 
-// 2. Hlavní stahovací funkce
 async function fetchDendroGraph(stationId) {
     const url = 'https://dendronet.cz/_dash-update-component';
     
-    // Tajné heslo
     const payload = {
         "output": ".._pages_content.children..._pages_store.data..",
         "outputs": [
@@ -55,7 +53,6 @@ async function fetchDendroGraph(stationId) {
         
         const json = await res.json();
         
-        // CHYTRÝ HLEDAČ
         let traces = null;
         function findTraces(obj) {
             if (!obj || typeof obj !== 'object') return;
@@ -75,7 +72,7 @@ async function fetchDendroGraph(stationId) {
         findTraces(json);
         
         if (!traces) {
-            throw new Error("Graf nebyl v odpovědi nalezen. Struktura webu se asi zase změnila.");
+            throw new Error("Graf nebyl v odpovědi nalezen.");
         }
 
         let times = [];
@@ -85,11 +82,14 @@ async function fetchDendroGraph(stationId) {
         traces.forEach(t => {
             if (!t.name || !t.y || !t.y.bdata) return;
             
-            // TADY TO PADALO - teď už funkce decodeB64Float bezpečně existuje hned nahoře
             const vals = decodeB64Float(t.y.bdata).map(v => isNaN(v) ? null : v);
 
+            // OPRAVA: Bezpečné vytažení časů z jakékoliv stopy, která je zrovna má
+            if (t.x && Array.isArray(t.x) && times.length === 0) {
+                times = t.x.map(x => String(x).substring(5, 16).replace('T', ' '));
+            }
+
             if (t.name.includes("Air Temperature")) {
-                times = t.x.map(x => x.substring(5, 16).replace('T', ' '));
                 temp = vals;
             }
             if (t.name.includes("SWC CS616")) {
@@ -103,7 +103,6 @@ async function fetchDendroGraph(stationId) {
         return null; 
     }
 }
-// --- KONEC NOVÝCH FUNKCÍ ---
 // --- KONEC NOVÝCH FUNKCÍ ---
 
 
