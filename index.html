@@ -1098,6 +1098,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     document.getElementById('radio-container').style.display       = tab === 'radio'       ? 'grid'  : 'none';
     document.getElementById('weather-container').style.display     = tab === 'weather'     ? 'flex'  : 'none';
     document.getElementById('smartregion-container').style.display = tab === 'smartregion' ? 'flex'  : 'none';
+	document.getElementById('nature-container').style.display      = tab === 'nature'      ? 'flex'  : 'none';
 
     if (tab === 'weather' && !weatherLoaded) { weatherLoaded = true; loadWeather(); }
     if (tab === 'smartregion' && !srLoaded)  { srLoaded = true; initSmartRegion(); }
@@ -1636,15 +1637,6 @@ function decodeB64Float(b64) {
     const bytes = new Uint8Array(raw.length);
     for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
     return Array.from(new Float64Array(bytes.buffer));
-}
-
-// Inicializace záložky Příroda
-async function initNature() {
-    await srLoadDeps(); // Využijeme tvoji funkci, která jistí načtení Chart.js
-
-    // TADY SI UPRAV ID STANICE PRO RALSKO, JAKMILE HO ZJISTÍŠ Z URL!
-    fetchAndRenderDendro('CZ_212_NS_Jetrichovice', 'chart-jetrichovice');
-    fetchAndRenderDendro('CZ_057_BE_Ralsko', 'chart-ralsko'); 
 }
 
 // Inicializace záložky Příroda
