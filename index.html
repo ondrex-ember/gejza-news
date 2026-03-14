@@ -1081,11 +1081,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     if (tab === 'weather' && !weatherLoaded) { weatherLoaded = true; loadWeather(); }
     if (tab === 'smartregion' && !srLoaded)  { srLoaded = true; initSmartRegion(); }
-    if (tab === 'smartregion') {
-      // Dvojitý rAF zajistí že prohlížeč dopočítal layout před Leafletem
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        if (srMap) srMap.invalidateSize(true);
-      }));
+    if (tab === 'smartregion' && srMap) {
+      setTimeout(() => srMap.invalidateSize(true), 200);
     }
   }
 
@@ -1261,7 +1258,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 /* ═══════════════════════════════════════════════════════════════
    ⚙️  NASTAV SVOJI GAS URL (po novém deploy → ?format=json)
    ═══════════════════════════════════════════════════════════════ */
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbz_-x5owHB7b9lLSroTZrg0H_xIw3ssU2zMsUUUGx8wEr_3MTc2j3cO9eludjgiYFo/exec';
+const GAS_API_URL = 'VLOZ_SVOJI_GAS_EXEC_URL_SEM';
  
 /* ── Stav ─────────────────────────────────────────────────────── */
 let srLoaded   = false;
@@ -1419,9 +1416,7 @@ function srOnData(result) {
   const info = document.getElementById('sr-info');
   if (info) info.textContent = (agg.length || rows.length) + ' bodů · ' + (granLbl[gran] || gran);
   srRenderChart(agg, rows, gran);
-  // Mapa: znovu init pokud ještě nemá správnou velikost, pak render
-  if (!srMap) srInitMap();
-  requestAnimationFrame(() => requestAnimationFrame(() => srRenderMap(rows)));
+  srRenderMap(rows);
 }
  
 /* ── Graf ─────────────────────────────────────────────────────── */
@@ -1514,19 +1509,14 @@ function srFmtLbl(k, gran) {
  
 /* ── Mapa ─────────────────────────────────────────────────────── */
 function srInitMap() {
-  if (!window.L) return;
+  if (!window.L || srMap) return;  // init jen jednou
   const el = document.getElementById('sr-map');
   if (!el) return;
-  // Pokud mapa existuje, zničíme ji a vytvoříme znovu — nejspolehlivější fix
-  if (srMap) { srMap.remove(); srMap = null; }
   srMap = L.map('sr-map').setView([50.7600, 14.5571], 12);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OSM', maxZoom: 18
   }).addTo(srMap);
-  // rAF dvojitý = zaručeně po layoutu
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    if (srMap) srMap.invalidateSize(true);
-  }));
+  setTimeout(() => { if (srMap) srMap.invalidateSize(true); }, 250);
 }
 function srRenderMap(data) {
   if (!window.L || !srMap) return;
@@ -1557,13 +1547,13 @@ function srRenderMap(data) {
     }
   });
 
-  // fitBounds jen pokud máme validní CZ souřadnice, jinak fallback na Nový Bor
+  // Nejdřív invalidate, pak fitBounds
+  srMap.invalidateSize(true);
   if (validBounds.length > 0) {
     try { srMap.fitBounds(validBounds, { padding: [40, 40], maxZoom: 14 }); } catch(e) {}
   } else {
     srMap.setView([50.7600, 14.5571], 12);
   }
-  setTimeout(() => srMap.invalidateSize(true), 150);
 }
  
 /* ── Doprava live ─────────────────────────────────────────────── */
