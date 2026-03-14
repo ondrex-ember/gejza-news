@@ -692,6 +692,67 @@
       opacity: 0.5;
       letter-spacing: 0.5px;
     }
+	
+  /* =============================================
+     SMART REGION
+     ============================================= */
+
+  #smartregion-container { display:none; flex-direction:column; gap:20px; }
+ 
+  .sr-section-header { display:flex; align-items:center; gap:12px; margin-bottom:4px; }
+  .sr-section-title  { font-size:13px; font-weight:bold; text-transform:uppercase; letter-spacing:2px; color:var(--muted); white-space:nowrap; }
+  .sr-section-line   { flex:1; height:1px; background:var(--border); }
+ 
+  /* Karta */
+  .sr-card        { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .sr-card-header { padding:13px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  .sr-card-title  { font-size:13px; font-weight:bold; color:var(--text); }
+  .sr-card-body   { padding:16px 18px; }
+ 
+  /* Tlačítka období */
+  .sr-period-group { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+  .sr-period-btn   { background:transparent; border:1px solid var(--border); color:var(--muted); font-size:11px; font-weight:bold; padding:3px 9px; border-radius:4px; cursor:pointer; transition:all .15s; }
+  .sr-period-btn:hover  { border-color:var(--act); color:var(--text); }
+  .sr-period-btn.active { border-color:var(--act); color:var(--act); background:rgba(255,174,0,.07); }
+  body.theme-blue  .sr-period-btn.active { background:rgba(100,255,218,.07); }
+  body.theme-red   .sr-period-btn.active { background:rgba(255,77,77,.07); }
+  body.theme-white .sr-period-btn.active { background:rgba(0,113,227,.07); }
+ 
+  .sr-gran-select { background:var(--card); color:var(--text); border:1px solid var(--border); font-size:11px; padding:3px 7px; border-radius:4px; cursor:pointer; }
+  .sr-gran-select:focus { outline:none; border-color:var(--act); }
+ 
+  /* Dataset checkboxy */
+  .sr-ds-checks { display:flex; flex-wrap:wrap; gap:6px; padding:10px 18px 8px; border-bottom:1px solid var(--border); }
+  .sr-ds-check  { cursor:pointer; user-select:none; font-size:11px; padding:2px 8px 2px 4px; border-radius:6px; display:inline-flex; align-items:center; gap:5px; color:var(--text); transition:opacity .15s; }
+  .sr-ds-check:hover { opacity:.75; }
+  .sr-ds-check input { cursor:pointer; accent-color:var(--act); }
+  .sr-ds-dot { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+ 
+  /* Graf */
+  .sr-chart-wrap    { position:relative; padding:16px 18px; height:260px; }
+  .sr-chart-loading { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--card); border:1px solid var(--border); padding:7px 16px; border-radius:8px; font-size:12px; color:var(--muted); display:none; }
+ 
+  /* Mapa */
+  #sr-map { height:320px; }
+ 
+  /* Doprava */
+  .sr-doprava-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .sr-doprava-seg  { background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+  .sr-doprava-dir  { font-size:13px; font-weight:bold; color:var(--text); margin-bottom:6px; }
+  .sr-doprava-spd  { font-size:22px; font-weight:800; color:var(--text); }
+  .sr-doprava-meta { font-size:11px; color:var(--muted); margin-top:3px; }
+  .sr-clr-ok   { color:#59d68d; }
+  .sr-clr-warn { color:#ffc107; }
+  .sr-clr-bad  { color:#ff4d4d; }
+ 
+  /* Config banner */
+  .sr-banner { background:rgba(255,174,0,.08); border:1px solid rgba(255,174,0,.25); border-radius:8px; padding:14px 18px; font-size:13px; color:var(--text); }
+  .sr-banner code { background:rgba(255,255,255,.08); padding:2px 7px; border-radius:4px; font-size:11px; font-family:monospace; color:var(--act); }
+ 
+  @media (max-width:600px) {
+    .sr-doprava-grid { grid-template-columns:1fr; }
+  }
+
   </style>
 </head>
 <body class="theme-dark">
@@ -728,6 +789,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <button class="tab-btn active" onclick="switchTab('news', this)">Zprávy</button>
     <button class="tab-btn" onclick="switchTab('radio', this)">Rádio</button>
     <button class="tab-btn" onclick="switchTab('weather', this)">Počasí</button>
+	<button class="tab-btn" onclick="switchTab('smartregion',this)">Smart Region</button>
   </div>
   <button class="btn-refresh" id="refresh-btn" onclick="onRefreshClick()">🔄 Obnovit</button>
 </div>
@@ -742,6 +804,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="weather-loading-text">⛅ Načítám data o počasí...</div>
     </div>
   </div>
+	<div id="smartregion-container"></div>
+
 </div>
 
 <footer class="site-footer">
@@ -1009,26 +1073,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
-    document.getElementById('news-container').style.display = tab === 'news' ? 'flex' : 'none';
-    document.getElementById('radio-container').style.display = tab === 'radio' ? 'grid' : 'none';
-    document.getElementById('weather-container').style.display = tab === 'weather' ? 'flex' : 'none';
+    document.getElementById('news-container').style.display        = tab === 'news'        ? 'flex'  : 'none';
+    document.getElementById('radio-container').style.display       = tab === 'radio'       ? 'grid'  : 'none';
+    document.getElementById('weather-container').style.display     = tab === 'weather'     ? 'flex'  : 'none';
+    document.getElementById('smartregion-container').style.display = tab === 'smartregion' ? 'flex'  : 'none';
 
-    // Lazy load počasí — načte se jen jednou při první návštěvě záložky
-    if (tab === 'weather' && !weatherLoaded) {
-      weatherLoaded = true;
-      loadWeather();
-    }
+    if (tab === 'weather' && !weatherLoaded) { weatherLoaded = true; loadWeather(); }
+    if (tab === 'smartregion' && !srLoaded)  { srLoaded = true; initSmartRegion(); }
   }
 
   /* =========================================================
      REFRESH TLAČÍTKO — kontextové (funguje pro aktuální záložku)
      ========================================================= */
   function onRefreshClick() {
-    if (currentTab === 'weather') {
-      refreshWeather();
-    } else {
-      refreshData(true);
-    }
+    if (currentTab === 'weather')     { refreshWeather(); }
+    else if (currentTab === 'smartregion') { srRefresh(); }
+    else { refreshData(true); }
   }
 
   async function refreshWeather() {
@@ -1074,19 +1134,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       console.error('Chyba při obnově dat:', err);
     } finally {
       if (isManual && btn) { btn.classList.remove('spin'); btn.innerText = '🔄 Obnovit'; }
-    }
-  }
-
-  function switchTab(tab, btn) {
-    currentTab = tab;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('news-container').style.display = tab === 'news' ? 'flex' : 'none';
-    document.getElementById('radio-container').style.display = tab === 'radio' ? 'grid' : 'none';
-    document.getElementById('weather-container').style.display = tab === 'weather' ? 'flex' : 'none';
-    if (tab === 'weather' && !weatherLoaded) {
-      weatherLoaded = true;
-      loadWeather();
     }
   }
 
@@ -1203,6 +1250,325 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       loadWeather();
     }
   }, 1800000);
+
+/* ═══════════════════════════════════════════════════════════════
+   ⚙️  NASTAV SVOJI GAS URL (po novém deploy → ?format=json)
+   ═══════════════════════════════════════════════════════════════ */
+const GAS_API_URL = 'VLOZ_SVOJI_GAS_EXEC_URL_SEM';
+ 
+/* ── Stav ─────────────────────────────────────────────────────── */
+let srLoaded   = false;
+let srChart    = null;
+let srMap      = null;
+let srDays     = 7;
+let srGran     = 'auto';
+const srVis    = {};
+ 
+const srDS = [
+  { key:'temp',    label:'Teplota (°C)',         color:'#0dcaf0', hidden:false },
+  { key:'pm10',    label:'PM10 (µg/m³)',          color:'#dc3545', hidden:false },
+  { key:'pm25',    label:'PM2.5 (µg/m³)',         color:'#ff6b6b', hidden:false, dash:[5,3] },
+  { key:'no2',     label:'NO2 (µg/m³)',           color:'#ffc107', hidden:false },
+  { key:'soil',    label:'Vlhkost půdy (%)',      color:'#198754', hidden:true  },
+  { key:'water',   label:'Průtok (m³/s)',         color:'#4dabf7', hidden:false },
+  { key:'radio',   label:'Radiace (µSv/h ×100)', color:'#c29ffa', hidden:false, fill:true },
+  { key:'doprava', label:'Rychlost I/9 (km/h)',  color:'#adb5bd', hidden:true  },
+];
+srDS.forEach(d => { srVis[d.key] = !d.hidden; });
+ 
+/* ── Inicializace záložky (lazy, jen při prvním otevření) ─────── */
+async function initSmartRegion() {
+  const c = document.getElementById('smartregion-container');
+ 
+  if (GAS_API_URL === 'https://script.google.com/macros/s/AKfycbz_-x5owHB7b9lLSroTZrg0H_xIw3ssU2zMsUUUGx8wEr_3MTc2j3cO9eludjgiYFo/exec') {
+    c.innerHTML = `<div class="sr-banner">⚙️ Nastav GAS URL — v <code>index.html</code> nahraď <code>VLOZ_SVOJI_GAS_EXEC_URL_SEM</code> svojí exec URL z GAS deploymentu.</div>`;
+    return;
+  }
+ 
+  c.innerHTML = `
+    <div class="sr-section-header">
+      <div class="sr-section-title">NBSense · Smart Region Nový Bor</div>
+      <div class="sr-section-line"></div>
+      <span id="sr-info" style="font-size:11px;color:var(--muted);white-space:nowrap;"></span>
+    </div>
+ 
+    <!-- GRAF -->
+    <div class="sr-card">
+      <div class="sr-card-header">
+        <div class="sr-card-title">📈 Historie měření</div>
+        <div class="sr-period-group">
+          <button class="sr-period-btn" data-days="1">24h</button>
+          <button class="sr-period-btn active" data-days="7">7d</button>
+          <button class="sr-period-btn" data-days="30">30d</button>
+          <button class="sr-period-btn" data-days="60">60d</button>
+          <button class="sr-period-btn" data-days="90">90d</button>
+          <button class="sr-period-btn" data-days="180">180d</button>
+          <button class="sr-period-btn" data-days="365">365d</button>
+          <select class="sr-gran-select" id="sr-gran">
+            <option value="auto">Auto</option>
+            <option value="hour">Hodina</option>
+            <option value="day">Den</option>
+            <option value="week">Týden</option>
+            <option value="month">Měsíc</option>
+          </select>
+        </div>
+      </div>
+      <div class="sr-ds-checks" id="sr-checks"></div>
+      <div class="sr-chart-wrap">
+        <canvas id="sr-chart-canvas"></canvas>
+        <div class="sr-chart-loading" id="sr-loading">⏳ Načítám data...</div>
+      </div>
+    </div>
+ 
+    <!-- MAPA -->
+    <div class="sr-card">
+      <div class="sr-card-header"><div class="sr-card-title">🗺️ Mapa senzorů</div></div>
+      <div id="sr-map"></div>
+    </div>
+ 
+    <!-- DOPRAVA -->
+    <div class="sr-card">
+      <div class="sr-card-header">
+        <div class="sr-card-title">🚗 Doprava I/9 – Nový Bor (live)</div>
+        <span id="sr-dcas" style="font-size:11px;color:var(--muted);"></span>
+      </div>
+      <div class="sr-card-body" id="sr-dbody">
+        <div style="color:var(--muted);font-size:13px;">Načítám...</div>
+      </div>
+    </div>
+  `;
+ 
+  // Lazy load Chart.js + Leaflet JS
+  await srLoadDeps();
+ 
+  // Eventy tlačítek
+  document.querySelectorAll('.sr-period-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.sr-period-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      srFetch(parseInt(btn.dataset.days), document.getElementById('sr-gran').value);
+    });
+  });
+  document.getElementById('sr-gran').addEventListener('change', e => srFetch(srDays, e.target.value));
+ 
+  srBuildChecks();
+  srInitMap();
+  srFetch(7, 'auto');
+  srLoadDoprava();
+  setInterval(srLoadDoprava, 5 * 60 * 1000);
+}
+ 
+/* ── Lazy load závislostí ─────────────────────────────────────── */
+function srLoadDeps() {
+  return new Promise(resolve => {
+    let pending = 0;
+    const done = () => { if (--pending === 0) resolve(); };
+    if (!window.Chart) {
+      pending++;
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+      s.onload = done;
+      document.head.appendChild(s);
+    }
+    if (!window.L) {
+      pending++;
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      s.onload = done;
+      document.head.appendChild(s);
+    }
+    if (pending === 0) resolve();
+  });
+}
+ 
+/* ── Fetch dat z GAS JSON API ─────────────────────────────────── */
+async function srFetch(days, gran) {
+  srDays = days; srGran = gran;
+  const load = document.getElementById('sr-loading');
+  if (load) load.style.display = 'block';
+  try {
+    const url = `${GAS_API_URL}?format=json&days=${days}&gran=${gran}&_t=${Date.now()}`;
+    const data = await (await fetch(url)).json();
+    srOnData(data);
+  } catch(e) {
+    if (load) load.style.display = 'none';
+    const info = document.getElementById('sr-info');
+    if (info) info.textContent = '⚠️ Chyba připojení k NBSense';
+    console.error('SR fetch error:', e);
+  }
+}
+ 
+function srOnData(result) {
+  const load = document.getElementById('sr-loading');
+  if (load) load.style.display = 'none';
+  const rows = result.rows || [], agg = result.aggregated || [], gran = result.granularity;
+  const granLbl = { hour:'po hodinách', day:'po dnech', week:'po týdnech', month:'po měsících' };
+  const info = document.getElementById('sr-info');
+  if (info) info.textContent = (agg.length || rows.length) + ' bodů · ' + (granLbl[gran] || gran);
+  srRenderChart(agg, rows, gran);
+  srRenderMap(rows);
+}
+ 
+/* ── Graf ─────────────────────────────────────────────────────── */
+function srBuildChecks() {
+  const wrap = document.getElementById('sr-checks');
+  if (!wrap) return;
+  srDS.forEach(d => {
+    const lbl = document.createElement('label');
+    lbl.className = 'sr-ds-check';
+    lbl.innerHTML = `<input type="checkbox" ${srVis[d.key]?'checked':''} data-key="${d.key}"><span class="sr-ds-dot" style="background:${d.color}"></span><span>${d.label}</span>`;
+    lbl.querySelector('input').addEventListener('change', e => {
+      srVis[d.key] = e.target.checked;
+      if (srChart) { srChart.data.datasets[srDS.findIndex(x=>x.key===d.key)].hidden = !e.target.checked; srChart.update(); }
+    });
+    wrap.appendChild(lbl);
+  });
+}
+ 
+function srRenderChart(agg, rows, gran) {
+  if (!window.Chart) return;
+  const pts = agg.length > 0 ? agg : srAggregate(rows, gran);
+  const labels = pts.map(p => srFmtLbl(p.t, gran));
+  const ctx = document.getElementById('sr-chart-canvas');
+  if (!ctx) return;
+  if (srChart) srChart.destroy();
+  const dark = !document.body.classList.contains('theme-white');
+  const grid = dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.07)';
+  const tick = dark ? '#555' : '#aaa';
+  srChart = new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: srDS.map(d => {
+        let vals;
+        if (d.key==='soil')  vals = pts.map(p => p.soil  != null ? +(p.soil  * 100).toFixed(1) : null);
+        else if (d.key==='radio') vals = pts.map(p => p.radio != null ? +(p.radio * 100).toFixed(3) : null);
+        else vals = pts.map(p => p[d.key] ?? null);
+        return { label:d.label, data:vals, borderColor:d.color, backgroundColor:d.fill?d.color+'15':'transparent', fill:d.fill||false, borderDash:d.dash||[], tension:.3, spanGaps:true, hidden:!srVis[d.key], pointRadius:0, pointHoverRadius:4 };
+      })
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins: {
+        legend:{ display:false },
+        tooltip:{
+          backgroundColor:dark?'#1a1e24':'#fff', borderColor:dark?'#24292e':'#ddd', borderWidth:1,
+          titleColor:dark?'#e0e0e0':'#111', bodyColor:dark?'#888':'#666',
+          callbacks:{ label(c){ const v=c.parsed.y; if(v==null)return null; const l=c.dataset.label; if(l.includes('Radiace'))return l+': '+(v/100).toFixed(4)+' µSv/h'; if(l.includes('půdy'))return l+': '+v.toFixed(1)+' %'; return l+': '+v; } }
+        }
+      },
+      scales:{
+        x:{ grid:{color:grid}, ticks:{color:tick, maxTicksLimit:10, font:{size:10}} },
+        y:{ grid:{color:grid}, ticks:{color:tick, font:{size:10}} }
+      }
+    }
+  });
+}
+ 
+/* ── Agregace ─────────────────────────────────────────────────── */
+function srAggregate(rows, gran) {
+  const B={}, rS={}, rC={};
+  rows.forEach(row=>{
+    const k=srBucket(row[0],gran); if(!k)return;
+    if(!B[k])B[k]={t:k,temp:null,pm10:null,pm25:null,no2:null,soil:null,water:null,radio:null,doprava:null,_s:{},_c:{}};
+    const b=B[k], pf=v=>v!==""?parseFloat(String(v).replace(',','.')):NaN;
+    [[3,'temp'],[6,'pm10'],[7,'pm25'],[8,'no2'],[9,'soil'],[10,'water']].forEach(([i,key])=>{
+      const v=pf(row[i]); if(!isNaN(v)){b._s[key]=(b._s[key]||0)+v;b._c[key]=(b._c[key]||0)+1;b[key]=+((b._s[key]/b._c[key]).toFixed(3));}
+    });
+    if(row[11]!==""){const v=pf(row[11]);if(!isNaN(v)){rS[k]=(rS[k]||0)+v;rC[k]=(rC[k]||0)+1;b.radio=+((rS[k]/rC[k]).toFixed(4));}}
+    if(row[12]!==""){const sp=parseFloat(row[12].split('|')[0]);if(!isNaN(sp)&&sp>0){b._s.doprava=(b._s.doprava||0)+sp;b._c.doprava=(b._c.doprava||0)+1;b.doprava=+((b._s.doprava/b._c.doprava).toFixed(1));}}
+  });
+  return Object.keys(B).sort().map(k=>B[k]);
+}
+function srBucket(ds, gran) {
+  const d=new Date(ds.replace(' ','T')); if(isNaN(d))return null;
+  const p=n=>String(n).padStart(2,'0');
+  if(gran==='day')   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+  if(gran==='week'){ const day=d.getDay()||7,m=new Date(d);m.setDate(d.getDate()-day+1);return`${m.getFullYear()}-${p(m.getMonth()+1)}-${p(m.getDate())}`; }
+  if(gran==='month') return `${d.getFullYear()}-${p(d.getMonth()+1)}`;
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:00`;
+}
+function srFmtLbl(k, gran) {
+  if(!k)return'';
+  if(gran==='day')   return k.substring(5);
+  if(gran==='week')  return 'T'+k.substring(5);
+  if(gran==='month') return k.substring(0,7);
+  return k.split(' ')[1]||k;
+}
+ 
+/* ── Mapa ─────────────────────────────────────────────────────── */
+function srInitMap() {
+  if (!window.L) return;
+  const el = document.getElementById('sr-map');
+  if (!el || srMap) return;
+  srMap = L.map('sr-map').setView([50.7600, 14.5571], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OSM' }).addTo(srMap);
+}
+function srRenderMap(data) {
+  if (!window.L || !srMap) return;
+  srMap.eachLayer(l => { if (l instanceof L.Marker) l.remove(); });
+  const seen = new Set();
+  const clr = { Počasí:'#0dcaf0', Ovzduší:'#dc3545', Plyn:'#ffc107', Půda:'#198754', Voda:'#0d6efd', Radiace:'#6f42c1', Doprava:'#adb5bd' };
+  data.forEach(row => {
+    const lat=parseFloat(row[13]), lon=parseFloat(row[14]), id=row[15], type=row[2];
+    if (!seen.has(id) && !isNaN(lat) && !isNaN(lon)) {
+      seen.add(id);
+      const c = clr[type]||'#ffae00';
+      const icon = L.divIcon({ html:`<div style="background:${c};width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px ${c}88;"></div>`, iconSize:[12,12], iconAnchor:[6,6], className:'' });
+      let popup=`<b>${row[1]}</b><br><small>${type}</small><br>`;
+      if(type==='Počasí')  popup+=`${row[3]} °C | ${row[5]} km/h`;
+      if(type==='Ovzduší') popup+=`PM10: ${row[6]} | PM2.5: ${row[7]}`;
+      if(type==='Plyn')    popup+=`NO2: ${row[8]} µg/m³`;
+      if(type==='Půda')    popup+=`Vlhkost: ${row[9]}`;
+      if(type==='Voda')    popup+=`Průtok: ${row[10]} m³/s`;
+      if(type==='Radiace') popup+=`${row[11]} µSv/h`;
+      L.marker([lat,lon],{icon}).addTo(srMap).bindPopup(popup);
+    }
+  });
+}
+ 
+/* ── Doprava live ─────────────────────────────────────────────── */
+async function srLoadDoprava() {
+  const CMIN=77000, CMAX=80000;
+  const body=document.getElementById('sr-dbody'), cas=document.getElementById('sr-dcas');
+  if (!body) return;
+  try {
+    const res  = await fetch('https://api.dopravniinfo.cz/RoadData.ashx?road=9&_t='+Date.now());
+    const json = await res.json();
+    const fcd  = (json.Fcd||[]).filter(s=>(s.ChainageFrom>=CMIN&&s.ChainageFrom<=CMAX)||(s.ChainageTo>=CMIN&&s.ChainageTo<=CMAX));
+    if (!fcd.length) { body.innerHTML='<div style="color:var(--muted);font-size:13px;">Žádná FCD data pro tento úsek.</div>'; return; }
+    if (cas) cas.textContent = new Date(fcd[0].StampUtc).toLocaleTimeString('cs-CZ');
+ 
+    // Uložení do NBSense DB (max 1×/hod) přes GET parametr
+    const seg = fcd.find(s=>s.Direction===2)||fcd[0];
+    if (GAS_API_URL !== 'https://script.google.com/macros/s/AKfycbz_-x5owHB7b9lLSroTZrg0H_xIw3ssU2zMsUUUGx8wEr_3MTc2j3cO9eludjgiYFo/exec') {
+      fetch(`${GAS_API_URL}?format=saveDoprava&speed=${seg.VD2}&delay=${seg.VD4}&level=${seg.VD10}`).catch(()=>{});
+    }
+ 
+    const lvl = l => l<=2?['🟢','sr-clr-ok','Volno']:l===3?['🟡','sr-clr-warn','Zpomalení']:['🔴','sr-clr-bad','Kolona'];
+    body.innerHTML = `<div class="sr-doprava-grid">${fcd.map(s=>{
+      const dir=s.Direction===1?'↑ Sever (Rumburk)':'↓ Jih (Praha)';
+      const [ico,cls,lbl]=lvl(s.VD10);
+      const delay=s.VD4>0?Math.round(s.VD4/60)+' min zdržení':'bez zdržení';
+      return `<div class="sr-doprava-seg"><div class="sr-doprava-dir">${ico} ${dir}</div><div class="sr-doprava-spd ${cls}">${s.VD2} <span style="font-size:13px;font-weight:normal">km/h</span></div><div class="sr-doprava-meta">${lbl} · ${delay} · spolehlivost ${Math.round(s.VD8*100)}%</div></div>`;
+    }).join('')}</div>`;
+  } catch(e) {
+    if (body) body.innerHTML=`<div style="color:var(--danger);font-size:12px;">Chyba načítání dopravy: ${e.message}</div>`;
+  }
+}
+ 
+/* ── Refresh ──────────────────────────────────────────────────── */
+function srRefresh() {
+  const btn=document.getElementById('refresh-btn');
+  if (btn){btn.classList.add('spin');btn.innerText='⏳ Načítám...';}
+  srFetch(srDays, srGran).finally(()=>{
+    if (btn){btn.classList.remove('spin');btn.innerText='🔄 Obnovit';}
+  });
+  srLoadDoprava();
+}
+ 
 </script>
+
 </body>
 </html>
