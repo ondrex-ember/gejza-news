@@ -733,7 +733,7 @@
   .sr-chart-loading { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--card); border:1px solid var(--border); padding:7px 16px; border-radius:8px; font-size:12px; color:var(--muted); display:none; }
  
   /* Mapa */
-  #sr-map { height:320px; }
+  #sr-map { height:320px; position:relative; }
  
   /* Doprava */
   .sr-doprava-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -1520,17 +1520,21 @@ function srInitMap() {
 }
 function srRenderMap(data) {
   if (!window.L || !srMap) return;
-  // Nejdřív invalidate, pak přidej markery
   srMap.invalidateSize(true);
   srMap.eachLayer(l => { if (l instanceof L.Marker || l instanceof L.CircleMarker) l.remove(); });
   const seen = new Set();
   const clr = { Počasí:'#0dcaf0', Ovzduší:'#dc3545', Plyn:'#ffc107', Půda:'#198754', Voda:'#0d6efd', Radiace:'#6f42c1', Doprava:'#adb5bd' };
-  const bounds = [];
+  const validBounds = [];
+
+  // CZ bounding box — odmítni souřadnice mimo rozumný rozsah
+  const CZ = { latMin:48.5, latMax:51.1, lonMin:12.0, lonMax:18.9 };
+
   data.forEach(row => {
     const lat=parseFloat(row[13]), lon=parseFloat(row[14]), id=row[15], type=row[2];
-    if (!seen.has(id) && !isNaN(lat) && !isNaN(lon)) {
+    const validCoord = !isNaN(lat) && !isNaN(lon) && lat > CZ.latMin && lat < CZ.latMax && lon > CZ.lonMin && lon < CZ.lonMax;
+    if (!seen.has(id) && validCoord) {
       seen.add(id);
-      bounds.push([lat, lon]);
+      validBounds.push([lat, lon]);
       const c = clr[type]||'#ffae00';
       const icon = L.divIcon({ html:`<div style="background:${c};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px ${c}99;"></div>`, iconSize:[14,14], iconAnchor:[7,7], className:'' });
       let popup=`<b>${row[1]}</b><br><small>${type}</small><br>`;
@@ -1543,11 +1547,13 @@ function srRenderMap(data) {
       L.marker([lat,lon],{icon}).addTo(srMap).bindPopup(popup);
     }
   });
-  // Přizpůsob pohled na senzory pokud existují
-  if (bounds.length > 0) {
-    try { srMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 }); } catch(e) {}
+
+  // fitBounds jen pokud máme validní CZ souřadnice, jinak fallback na Nový Bor
+  if (validBounds.length > 0) {
+    try { srMap.fitBounds(validBounds, { padding: [40, 40], maxZoom: 14 }); } catch(e) {}
+  } else {
+    srMap.setView([50.7600, 14.5571], 12);
   }
-  // Finální invalidate po přidání markerů
   setTimeout(() => srMap.invalidateSize(true), 150);
 }
  
