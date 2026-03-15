@@ -754,6 +754,77 @@
     .sr-doprava-grid { grid-template-columns:1fr; }
   }
 
+  /* WeatherXM hodnoty */
+  .wxm-vals     { display:flex; flex-wrap:wrap; gap:10px; padding:14px 18px; }
+  .wxm-val-item { display:flex; flex-direction:column; align-items:center; gap:2px;
+                  background:rgba(255,255,255,.03); border:1px solid var(--border);
+                  border-radius:8px; padding:8px 14px; min-width:72px; }
+  .wxm-val-lbl  { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+  .wxm-val-num  { font-size:18px; font-weight:800; line-height:1; }
+  .wxm-val-unit { font-size:10px; color:var(--muted); }
+
+  /* WeatherXM hero (počasí tab) */
+  .wxm-hero {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+  }
+  .wxm-hero::before {
+    content: '';
+    position: absolute; top: -50px; right: -50px;
+    width: 220px; height: 220px;
+    background: radial-gradient(circle, rgba(100,200,255,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .wxm-hero-head {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+  .wxm-hero-title { font-size: 13px; font-weight: 800; letter-spacing: .5px; color: var(--text); }
+  .wxm-hero-badge {
+    font-size: 10px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 20px;
+    background: rgba(100,200,255,.12); color: #64c8ff; border: 1px solid rgba(100,200,255,.25);
+  }
+  body.theme-white .wxm-hero-badge { background: rgba(0,100,200,.08); color: #0064c8; border-color: rgba(0,100,200,.2); }
+  .wxm-hero-main {
+    display: flex; align-items: center; gap: 28px;
+    padding: 18px 20px 14px; flex-wrap: wrap;
+  }
+  .wxm-hero-temp-big {
+    font-size: 60px; font-weight: 800; letter-spacing: -2px; line-height: 1; color: var(--text);
+  }
+  .wxm-hero-meta { display: flex; flex-direction: column; gap: 4px; }
+  .wxm-hero-station { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .wxm-hero-desc   { font-size: 13px; color: var(--text); opacity: .8; }
+  .wxm-hero-stats  { display: flex; flex-wrap: wrap; gap: 20px; margin-left: auto; }
+  .wxm-stat { display: flex; flex-direction: column; gap: 2px; }
+  .wxm-stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .wxm-stat-value { font-size: 20px; font-weight: 800; color: var(--text); }
+  .wxm-stat-unit  { font-size: 11px; font-weight: 400; }
+  .wxm-sparkline-wrap { padding: 0 20px 16px; height: 80px; position: relative; }
+  .wxm-footer {
+    padding: 8px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 10px; color: var(--muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .wxm-dot { width: 7px; height: 7px; border-radius: 50%; background: #59d68d; display: inline-block; }
+  .wxm-dot.offline { background: var(--muted); }
+
+  /* Oddělovač mezi WXM a Open-Meteo */
+  .weather-divider {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--muted);
+  }
+  .weather-divider::before, .weather-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
   </style>
 </head>
 <body class="theme-dark">
@@ -871,6 +942,47 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
     </div>
 
+    <!-- WEATHERXM ─ Osobní meteostanice ─────────────────────────────────── -->
+    <div class="sr-section-header" style="margin-top:12px;">
+      <div class="sr-section-title">🌤️ Osobní Meteostanice · WeatherXM PRO</div>
+      <div class="sr-section-line"></div>
+      <small id="wxm-nature-info" style="color:var(--muted);font-size:11px;white-space:nowrap;"></small>
+    </div>
+
+    <!-- Aktuální hodnoty -->
+    <div class="sr-card">
+      <div class="sr-card-header">
+        <div class="sr-card-title">📡 Rare Nickel Troposphere · Aktuální měření</div>
+        <span id="wxm-nature-status" style="font-size:11px;color:var(--muted);">načítám…</span>
+      </div>
+      <div id="wxm-vals-wrap" class="wxm-vals"></div>
+    </div>
+
+    <!-- Teplota + Vlhkost -->
+    <div class="sr-card">
+      <div class="sr-card-header"><div class="sr-card-title">🌡️ WeatherXM · Teplota + Vlhkost vzduchu</div></div>
+      <div class="sr-chart-wrap">
+        <canvas id="chart-wxm-temp"></canvas>
+        <div class="sr-chart-loading" id="load-wxm" style="display:block;">⏳ Načítám data stanice…</div>
+      </div>
+    </div>
+
+    <!-- Vítr + Tlak -->
+    <div class="sr-card">
+      <div class="sr-card-header"><div class="sr-card-title">💨 WeatherXM · Vítr + Atmosferický tlak</div></div>
+      <div class="sr-chart-wrap">
+        <canvas id="chart-wxm-wind"></canvas>
+      </div>
+    </div>
+
+    <!-- Srážky -->
+    <div class="sr-card">
+      <div class="sr-card-header"><div class="sr-card-title">🌧️ WeatherXM · Srážky (mm)</div></div>
+      <div class="sr-chart-wrap" style="height:160px;">
+        <canvas id="chart-wxm-rain"></canvas>
+      </div>
+    </div>
+
   </div>
 
 </div>
@@ -985,13 +1097,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if (!container) return;
 
     try {
-      // Paralelní fetch pro všechna města najednou
-      const results = await Promise.all(
-        WEATHER_CITIES.map(city => fetchCityWeather(city).then(data => ({ city, data })).catch(() => null))
-      );
+      // Paralelní fetch: Open-Meteo pro všechna města + WeatherXM PRO ze stejného GAS
+      const [results, wxmData] = await Promise.all([
+        Promise.all(
+          WEATHER_CITIES.map(city => fetchCityWeather(city).then(data => ({ city, data })).catch(() => null))
+        ),
+        fetch(GAS_API_URL + '?format=weatherxm&_t=' + Date.now())
+          .then(r => r.ok ? r.json() : null)
+          .catch(() => null)
+      ]);
 
       container.innerHTML = '';
-      renderWeather(container, results);
+      renderWeather(container, results, wxmData);
 
     } catch (err) {
       container.innerHTML = `<div class="weather-skeleton" style="color:var(--danger)">⚠️ Nepodařilo se načíst data o počasí. Zkus to za chvíli.</div>`;
@@ -1002,11 +1119,143 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* =========================================================
      RENDER POČASÍ
      ========================================================= */
-  function renderWeather(container, results) {
+  function renderWeather(container, results, wxmData) {
     const heroResult = results.find(r => r && r.city.hero);
     const cityResults = results.filter(r => r && !r.city.hero);
 
-    // --- HERO CARD — Nový Bor ---
+    // ═══ WXM HERO — Osobní stanice nahoře ═══════════════════════════════════
+    const wxmEl = document.createElement('div');
+    wxmEl.id = 'wxm-weather-block';
+    const wxm = wxmData;
+    const wxmLatest = wxm && wxm.latest;
+    const wxmOnline = wxmLatest && wxm.rows && wxm.rows.length > 0;
+
+    if (wxmOnline) {
+      const lastFetch = wxm.lastFetch
+        ? new Date(wxm.lastFetch).toLocaleString('cs-CZ', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
+        : '–';
+      const dirs = ['S','SSV','SV','VSV','V','VJV','JV','JJV','J','JJZ','JZ','ZJZ','Z','ZSZ','SZ','SSZ'];
+      const windDir = wxmLatest.wind_dir !== null ? dirs[Math.round(wxmLatest.wind_dir / 22.5) % 16] : '–';
+
+      wxmEl.className = 'wxm-hero';
+      wxmEl.innerHTML = `
+        <div class="wxm-hero-head">
+          <div>
+            <div class="wxm-hero-title">📡 Nový Bor · Osobní meteorologická stanice</div>
+            <div class="wxm-hero-station">${wxm.stationName || 'Rare Nickel Troposphere'}</div>
+          </div>
+          <div class="wxm-hero-badge">⚡ WeatherXM PRO</div>
+        </div>
+        <div class="wxm-hero-main">
+          <div class="wxm-hero-temp-big">${wxmLatest.temp !== null ? wxmLatest.temp + '°' : '–'}</div>
+          <div class="wxm-hero-meta">
+            <div class="wxm-hero-desc">Přesné hyper-lokální měření</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+              ${wxm.points} bodů v historii
+            </div>
+          </div>
+          <div class="wxm-hero-stats">
+            <div class="wxm-stat">
+              <div class="wxm-stat-label">Vlhkost</div>
+              <div class="wxm-stat-value">${wxmLatest.hum !== null ? wxmLatest.hum : '–'}<span class="wxm-stat-unit"> %</span></div>
+            </div>
+            <div class="wxm-stat">
+              <div class="wxm-stat-label">Vítr</div>
+              <div class="wxm-stat-value">${wxmLatest.wind !== null ? wxmLatest.wind : '–'}<span class="wxm-stat-unit"> km/h</span></div>
+            </div>
+            <div class="wxm-stat">
+              <div class="wxm-stat-label">Směr</div>
+              <div class="wxm-stat-value">${windDir}</div>
+            </div>
+            <div class="wxm-stat">
+              <div class="wxm-stat-label">Tlak</div>
+              <div class="wxm-stat-value">${wxmLatest.press !== null ? wxmLatest.press : '–'}<span class="wxm-stat-unit"> hPa</span></div>
+            </div>
+            <div class="wxm-stat">
+              <div class="wxm-stat-label">Srážky</div>
+              <div class="wxm-stat-value">${wxmLatest.precip !== null ? wxmLatest.precip : '–'}<span class="wxm-stat-unit"> mm</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="wxm-sparkline-wrap">
+          <canvas id="wxm-sparkline"></canvas>
+        </div>
+        <div class="wxm-footer">
+          <span class="wxm-dot"></span>
+          Poslední měření: ${lastFetch}
+          ${wxm.quality ? ' &nbsp;·&nbsp; Kvalita dat: ' + wxm.quality + '%' : ''}
+        </div>
+      `;
+      container.appendChild(wxmEl);
+
+      // Sparkline — teplota za posledních N bodů (max 48)
+      requestAnimationFrame(function() {
+        const canvas = document.getElementById('wxm-sparkline');
+        if (!canvas) return;
+        const rows  = wxm.rows.slice(-48);
+        const dark  = !document.body.classList.contains('theme-white');
+        const tick  = dark ? 'rgba(255,255,255,.3)' : 'rgba(0,0,0,.3)';
+        if (window._wxmSparkChart) window._wxmSparkChart.destroy();
+        window._wxmSparkChart = new Chart(canvas.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: rows.map(function(r) {
+              const d = new Date(r.t.replace(' ','T'));
+              return isNaN(d) ? '' : String(d.getHours()).padStart(2,'0') + ':00';
+            }),
+            datasets: [
+              {
+                label: 'Teplota (°C)',
+                data: rows.map(function(r){ return r.temp; }),
+                borderColor: '#ffae00', backgroundColor: 'rgba(255,174,0,.08)',
+                fill: true, tension: 0.4, pointRadius: 0, spanGaps: true, borderWidth: 1.5,
+                yAxisID: 'y'
+              },
+              {
+                label: 'Vlhkost (%)',
+                data: rows.map(function(r){ return r.hum; }),
+                borderColor: '#64c8ff', backgroundColor: 'transparent',
+                tension: 0.4, pointRadius: 0, spanGaps: true, borderWidth: 1, borderDash: [4,3],
+                yAxisID: 'y2'
+              }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: true, position: 'top', labels: { color: tick, font: { size: 10 }, boxWidth: 10, padding: 6 } } },
+            scales: {
+              x: { ticks: { maxTicksLimit: 8, color: tick, font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } },
+              y:  { position: 'left',  ticks: { color: '#ffae00', font: { size: 9 }, maxTicksLimit: 4 }, grid: { color: 'rgba(255,255,255,.04)' } },
+              y2: { position: 'right', ticks: { color: '#64c8ff', font: { size: 9 }, maxTicksLimit: 4 }, grid: { drawOnChartArea: false } }
+            }
+          }
+        });
+      });
+
+    } else {
+      // WXM offline — diskrétní banner
+      wxmEl.className = 'wxm-hero';
+      wxmEl.innerHTML = `
+        <div class="wxm-hero-head">
+          <div class="wxm-hero-title">📡 Osobní stanice WeatherXM PRO</div>
+          <div class="wxm-hero-badge" style="opacity:.5;">offline</div>
+        </div>
+        <div style="padding:16px 20px;font-size:12px;color:var(--muted);">
+          Data ze stanice zatím nejsou k dispozici. Spusť <code style="font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px;">fetchWeatherXM()</code> v GAS a nastav trigger.
+        </div>
+        <div class="wxm-footer"><span class="wxm-dot offline"></span> Offline</div>
+      `;
+      container.appendChild(wxmEl);
+    }
+
+    // ═══ ODDĚLOVAČ ══════════════════════════════════════════════════════════
+    const divider = document.createElement('div');
+    divider.className = 'weather-divider';
+    divider.textContent = 'Předpověď · Open-Meteo';
+    container.appendChild(divider);
+
+    // --- HERO CARD — Nový Bor (Open-Meteo, předpověď 10 dní) ---
     if (heroResult) {
       const { city, data } = heroResult;
       const cur = data.current;
@@ -1832,6 +2081,137 @@ function renderNature() {
 
   renderLoc(appData.nature.jetrichovice, 'jetrichovice');
   renderLoc(appData.nature.ralsko,       'ralsko');
+  renderWxmNature(appData.nature.weatherxm);
+}
+
+// ── WeatherXM renderer ────────────────────────────────────────────────────────
+function renderWxmNature(wxm) {
+  const loadEl    = document.getElementById('load-wxm');
+  const statusEl  = document.getElementById('wxm-nature-status');
+  const infoEl    = document.getElementById('wxm-nature-info');
+  const valsWrap  = document.getElementById('wxm-vals-wrap');
+
+  // Bez dat
+  if (!wxm || !wxm.rows || wxm.rows.length === 0) {
+    if (loadEl)   { loadEl.style.display = 'block'; loadEl.textContent = '📭 Data WeatherXM nejsou k dispozici.'; }
+    if (statusEl) statusEl.textContent = 'offline';
+    return;
+  }
+
+  if (loadEl) loadEl.style.display = 'none';
+
+  // Status + info
+  if (statusEl) { statusEl.style.color = '#59d68d'; statusEl.textContent = '● live'; }
+  if (infoEl && wxm.lastFetch) {
+    const d = new Date(wxm.lastFetch);
+    infoEl.textContent = (wxm.stationName || 'Stanice') + ' · ' + wxm.points + ' bodů · '
+      + d.toLocaleString('cs-CZ', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+  }
+
+  // Aktuální hodnoty — badgy
+  const latest = wxm.latest;
+  if (latest && valsWrap) {
+    const metrics = [
+      { key:'temp',  lbl:'Teplota',  unit:'°C',   color:'#ffae00' },
+      { key:'hum',   lbl:'Vlhkost',  unit:'%',    color:'#0dcaf0' },
+      { key:'press', lbl:'Tlak',     unit:'hPa',  color:'#59d68d' },
+      { key:'wind',  lbl:'Vítr',     unit:'km/h', color:'#a78bfa' },
+      { key:'precip',lbl:'Srážky',   unit:'mm',   color:'#60a5fa' },
+    ];
+    valsWrap.innerHTML = '';
+    metrics.forEach(function(m) {
+      const v = latest[m.key];
+      if (v === null || v === undefined) return;
+      valsWrap.innerHTML +=
+        '<div class="wxm-val-item">' +
+          '<span class="wxm-val-lbl">' + m.lbl + '</span>' +
+          '<span class="wxm-val-num" style="color:' + m.color + '">' + v + '</span>' +
+          '<span class="wxm-val-unit">' + m.unit + '</span>' +
+        '</div>';
+    });
+    // Směr větru
+    if (latest.wind_dir !== null && latest.wind_dir !== undefined) {
+      const dirs = ['S','SSV','SV','VSV','V','VJV','JV','JJV','J','JJZ','JZ','ZJZ','Z','ZSZ','SZ','SSZ'];
+      const compass = dirs[Math.round(latest.wind_dir / 22.5) % 16];
+      valsWrap.innerHTML +=
+        '<div class="wxm-val-item">' +
+          '<span class="wxm-val-lbl">Směr</span>' +
+          '<span class="wxm-val-num" style="color:var(--muted)">' + compass + '</span>' +
+          '<span class="wxm-val-unit">' + latest.wind_dir + '°</span>' +
+        '</div>';
+    }
+  }
+
+  // Graf setup
+  const dark   = !document.body.classList.contains('theme-white');
+  const grid   = dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.07)';
+  const tick   = dark ? '#aaa' : '#555';
+  const rows   = wxm.rows;
+  const labels = rows.map(function(r) {
+    const d = new Date(r.t.replace(' ', 'T'));
+    return isNaN(d) ? r.t :
+      (d.getMonth()+1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2,'0') + ':00';
+  });
+
+  function makeWxmChart(canvasId, datasets, scales) {
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+    if (window['_wxm_' + canvasId]) window['_wxm_' + canvasId].destroy();
+    window['_wxm_' + canvasId] = new Chart(el.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: datasets.map(function(d) {
+          return {
+            label: d.label, data: d.data,
+            borderColor: d.color,
+            backgroundColor: d.fill ? d.color + '1a' : 'transparent',
+            fill: d.fill || false, tension: 0.3,
+            pointRadius: rows.length > 60 ? 0 : 2,
+            spanGaps: true, borderWidth: 1.5,
+            borderDash: d.dash || [],
+            yAxisID: d.axis || 'y'
+          };
+        })
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: true, position: 'top',
+            labels: { color: tick, font: { size: 11 }, boxWidth: 12, padding: 8 } }
+        },
+        scales: Object.assign({
+          x: { ticks: { maxTicksLimit: 8, color: tick, font: { size: 10 } }, grid: { color: grid } }
+        }, scales)
+      }
+    });
+  }
+
+  // Graf 1: Teplota + Vlhkost
+  makeWxmChart('chart-wxm-temp', [
+    { label: 'Teplota (°C)',   data: rows.map(function(r){ return r.temp; }), color: '#ffae00', axis: 'y'  },
+    { label: 'Vlhkost (%)',    data: rows.map(function(r){ return r.hum;  }), color: '#0dcaf0', axis: 'y1' },
+  ], {
+    y:  { position: 'left',  title: { display:true, text:'°C',  color:'#ffae00' }, ticks:{ color:tick }, grid:{ color:grid } },
+    y1: { position: 'right', title: { display:true, text:'%',   color:'#0dcaf0' }, ticks:{ color:tick }, grid:{ drawOnChartArea:false } }
+  });
+
+  // Graf 2: Vítr + Tlak
+  makeWxmChart('chart-wxm-wind', [
+    { label: 'Vítr (km/h)',   data: rows.map(function(r){ return r.wind;  }), color: '#a78bfa', axis: 'y'  },
+    { label: 'Tlak (hPa)',    data: rows.map(function(r){ return r.press; }), color: '#59d68d', axis: 'y1' },
+  ], {
+    y:  { position: 'left',  title: { display:true, text:'km/h', color:'#a78bfa' }, ticks:{ color:tick }, grid:{ color:grid } },
+    y1: { position: 'right', title: { display:true, text:'hPa',  color:'#59d68d' }, ticks:{ color:tick }, grid:{ drawOnChartArea:false } }
+  });
+
+  // Graf 3: Srážky
+  makeWxmChart('chart-wxm-rain', [
+    { label: 'Srážky (mm)', data: rows.map(function(r){ return r.precip; }), color: '#60a5fa', fill: true, axis: 'y' },
+  ], {
+    y: { position: 'left', title: { display:true, text:'mm', color:'#60a5fa' }, ticks:{ color:tick }, grid:{ color:grid } }
+  });
 }
 
 /* ── renderChart zachován pro zpětnou kompatibilitu ──────────── */
