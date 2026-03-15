@@ -3,40 +3,55 @@ const fs = require('fs');
 // URL si GitHub přečte ze svých tajných Secrets
 const GAS_URL = process.env.GAS_URL; 
 
-
 // --- NOVÉ: Pomocné funkce pro DendroNet ---
 
+// --- POMOCNÁ FUNKCE ---
 function decodeB64Float(b64) {
     const raw = Buffer.from(b64, 'base64');
     const float64Array = new Float64Array(raw.buffer, raw.byteOffset, raw.length / 8);
     return Array.from(float64Array);
 }
 
+// --- HLAVNÍ FUNKCE (DVOUFÁZOVÁ) ---
 async function fetchDendroGraph(stationId) {
-    const url = 'https://dendronet.cz/_dash-update-component';
-    
-    const payload = {
-        "output": ".._pages_content.children..._pages_store.data..",
-        "outputs": [
-            { "id": "_pages_content", "property": "children" },
-            { "id": "_pages_store", "property": "data" }
-        ],
-        "inputs": [
-            { "id": "_pages_location", "property": "pathname", "value": `/location/${stationId}` },
-            { "id": "_pages_location", "property": "search", "value": "" },
-            { "id": "lang-store", "property": "data", "value": "cz" }
-        ],
-        "changedPropIds": ["_pages_location.pathname", "_pages_location.search"]
-    };
+    const pageUrl = `https://dendronet.cz/location/${stationId}`;
+    const apiUrl = 'https://dendronet.cz/_dash-update-component';
 
     try {
-        const res = await fetch(url, {
+        // KROK 1: Nasimulujeme první návštěvu stránky a ukradneme Session Cookies
+        console.log(`[${stationId}] Fáze 1: Získávám Cookies...`);
+        const pageRes = await fetch(pageUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0' }
+        });
+        
+        // Zpracování Cookies
+        const rawCookies = pageRes.headers.get('set-cookie');
+        const cookieHeader = rawCookies ? rawCookies.split(',').map(c => c.split(';')[0]).join('; ') : '';
+
+        // KROK 2: Pošleme POST požadavek s ukradenými Cookies
+        console.log(`[${stationId}] Fáze 2: Tahám tlustá data...`);
+        const payload = {
+            "output": ".._pages_content.children..._pages_store.data..",
+            "outputs": [
+                { "id": "_pages_content", "property": "children" },
+                { "id": "_pages_store", "property": "data" }
+            ],
+            "inputs": [
+                { "id": "_pages_location", "property": "pathname", "value": `/location/${stationId}` },
+                { "id": "_pages_location", "property": "search", "value": "" },
+                { "id": "lang-store", "property": "data", "value": "cz" }
+            ],
+            "changedPropIds": ["_pages_location.pathname", "_pages_location.search"]
+        };
+
+        const res = await fetch(apiUrl, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
                 'Origin': 'https://dendronet.cz',
-                'Referer': `https://dendronet.cz/location/${stationId}`
+                'Referer': pageUrl,
+                'Cookie': cookieHeader // TADY JE TO KOUZLO!
             },
             body: JSON.stringify(payload)
         });
@@ -47,6 +62,7 @@ async function fetchDendroGraph(stationId) {
         
         const json = await res.json();
         
+        // KROK 3: Chytrý hledač dat
         let traces = null;
         function findTraces(obj) {
             if (!obj || typeof obj !== 'object') return;
@@ -63,37 +79,28 @@ async function fetchDendroGraph(stationId) {
         }
         findTraces(json);
         
-        if (!traces) throw new Error("Struktura JSONu neobsahuje data grafu.");
+        if (!traces) throw new Error("Struktura JSONu neobsahuje data grafu. Asi chybí oprávnění z Cookies.");
 
-        let times = [];
-        let temp = [];
-        let soil = [];
+        let times = [], temp = [], soil = [];
 
         traces.forEach(t => {
-            try {
-                if (!t.name || !t.y || !t.y.bdata) return;
-                const vals = decodeB64Float(t.y.bdata).map(v => isNaN(v) ? null : v);
+            if (!t.name || !t.y || !t.y.bdata) return;
+            const vals = decodeB64Float(t.y.bdata).map(v => isNaN(v) ? null : v);
 
-                if (t.x && Array.isArray(t.x) && times.length === 0) {
-                    times = t.x.map(x => String(x).substring(5, 16).replace('T', ' '));
-                }
-                if (t.name.includes("Air Temperature")) temp = vals;
-                if (t.name.includes("SWC CS616")) soil = vals.map(v => v !== null ? Number((v * 100).toFixed(2)) : null);
-            } catch (innerErr) {
-                throw new Error(`Chyba při parsování dat: ${innerErr.message}`);
+            if (t.x && Array.isArray(t.x) && times.length === 0) {
+                times = t.x.map(x => String(x).substring(5, 16).replace('T', ' '));
             }
+            if (t.name.includes("Air Temperature")) temp = vals;
+            if (t.name.includes("SWC CS616")) soil = vals.map(v => v !== null ? Number((v * 100).toFixed(2)) : null);
         });
 
         return { times, temp, soil };
     } catch (e) {
-        // TADY JE TEN TRIK! Místo null vracíme přímo chybovou hlášku.
-        return { 
-            chybaZGithubu: e.message, 
-            times: [], temp: [], soil: [] 
-        };
+        console.error(`[${stationId}] KRACH:`, e.message);
+        // Pošleme chybu rovnou do JSONu! Kdyby to spadlo, v prohlížeči uvidíme rovnou důvod.
+        return { chyba: e.message, times: [], temp: [], soil: [] };
     }
 }
-
 // --- KONEC NOVÝCH FUNKCÍ ---
 
 
