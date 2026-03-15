@@ -1299,10 +1299,10 @@ const srDS = [
   { key:'pm10',    label:'PM10 (µg/m³)',          color:'#dc3545', hidden:false },
   { key:'pm25',    label:'PM2.5 (µg/m³)',         color:'#ff6b6b', hidden:false, dash:[5,3] },
   { key:'no2',     label:'NO2 (µg/m³)',           color:'#ffc107', hidden:false },
-  { key:'soil',    label:'Vlhkost půdy (%)',      color:'#198754', hidden:true  },
+  { key:'soil',    label:'Vlhkost půdy (%)',      color:'#198754', hidden:false },
   { key:'water',   label:'Průtok (m³/s)',         color:'#4dabf7', hidden:false },
-  { key:'radio',   label:'Radiace (µSv/h ×100)', color:'#c29ffa', hidden:false, fill:true },
-  { key:'doprava', label:'Rychlost I/9 (km/h)',  color:'#adb5bd', hidden:true  },
+  { key:'radio',   label:'Radiace (µSv/h ×100)', color:'#c29ffa', hidden:true, fill:true },
+  { key:'doprava', label:'Rychlost I/9 (km/h)',  color:'#adb5bd', hidden:true },
 ];
 srDS.forEach(d => { srVis[d.key] = !d.hidden; });
  
