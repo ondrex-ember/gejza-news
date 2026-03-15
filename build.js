@@ -1,7 +1,8 @@
 const fs = require('fs');
 
-// URL si GitHub přečte ze svých tajných Secrets
+// Tajné adresy z GitHub Secrets
 const GAS_URL = process.env.GAS_URL; 
+const NBSENSE_URL = process.env.NBSENSE_URL; 
 
 async function build() {
   try {
@@ -13,7 +14,6 @@ async function build() {
 
     const compiledNews = [];
     
-    // Zprávy
     for (const feed of appData.news) {
       if (feed.isPublic === false) continue;
       try {
@@ -26,14 +26,33 @@ async function build() {
       }
     }
     
-    // Čistý export (jen rádio a zprávy)
+    // --- STAHUJEME PŘÍRODU Z TVÉHO NBSENSE ---
+    console.log("Stahuji data o přírodě z NBSense (Google Apps Script)...");
+    let natureData = { jetrichovice: null, ralsko: null };
+    try {
+        if (NBSENSE_URL) {
+            const natureRes = await fetch(NBSENSE_URL);
+            if (natureRes.ok) {
+                natureData = await natureRes.json();
+                console.log("Data z přírody úspěšně načtena!");
+            } else {
+                console.warn(`NBSense vrátil chybu: ${natureRes.status}`);
+            }
+        } else {
+            console.warn("Chybí tajná adresa NBSENSE_URL v GitHub Secrets!");
+        }
+    } catch (e) {
+        console.error("Nepodařilo se spojit s NBSense:", e.message);
+    }
+    
     const finalData = {
       radio: appData.radio.filter(r => r.isPublic !== false),
-      news: compiledNews
+      news: compiledNews,
+      nature: natureData
     };
     
     fs.writeFileSync('data.json', JSON.stringify(finalData));
-    console.log("data.json úspěšně vygenerován! (čistá verze bez lesů)");
+    console.log("data.json úspěšně vygenerován i s daty z přírody!");
 
   } catch (err) {
     console.error("Kritická chyba buildu:", err);
