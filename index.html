@@ -1589,7 +1589,7 @@ function srRenderMap(data) {
   data.forEach(row => {
     
     // ZDE JE TA OPRAVA ZPĚT: Indexy 13, 14 a 15 jsou správně, protože GAS připojuje souřadnice na konec pole měření
-    const lat=parseFloat(row[13]), lon=parseFloat(row[14]), id=row[15], type=row[2];
+    const lat=parseFloat(row[14]), lon=parseFloat(row[15]), id=row[16], type=row[2];
     
     const validCoord = !isNaN(lat) && !isNaN(lon) && lat > CZ.latMin && lat < CZ.latMax && lon > CZ.lonMin && lon < CZ.lonMax;
     if (!seen.has(id) && validCoord) {
@@ -1603,7 +1603,7 @@ function srRenderMap(data) {
       if(type==='Ovzduší') popup+=`PM10: ${row[6]} | PM2.5: ${row[7]}`;
       if(type==='Plyn')    popup+=`NO2: ${row[8]} µg/m³`;
       if(type==='Půda')    popup+=`Vlhkost: ${row[9]}`;
-      if(type==='Voda')    popup+=`Průtok: ${row[10]} m³/s`;
+      if(type==='Voda') { if(row[10]!=='') popup+=`Průtok: ${row[10]} m³/s`; if(row[13]!=='') popup+=` | Hladina: ${row[13]} cm`; }
       if(type==='Radiace') popup+=`${row[11]} µSv/h`;
       L.marker([lat,lon],{icon}).addTo(srMap).bindPopup(popup);
     }
