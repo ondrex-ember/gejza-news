@@ -3,8 +3,6 @@ const fs = require('fs');
 // URL si GitHub přečte ze svých tajných Secrets
 const GAS_URL = process.env.GAS_URL; 
 
-// --- NOVÉ Pomocné funkce pro DendroNet ---
-
 // --- POMOCNÁ FUNKCE ---
 function decodeB64Float(b64) {
     const raw = Buffer.from(b64, 'base64');
@@ -24,30 +22,22 @@ async function fetchDendroGraph(stationId) {
         });
         
         let cookieHeader = '';
-        if (typeof pageRes.headers.getSetCookie === 'function') {
-            cookieHeader = pageRes.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
-        } else {
-            const raw = pageRes.headers.get('set-cookie');
-            if (raw) cookieHeader = raw.split(',').map(c => c.split(';')[0]).join('; ');
-        }
+        const rawCookies = pageRes.headers.get('set-cookie');
+        if (rawCookies) cookieHeader = rawCookies.split(',').map(c => c.split(';')[0]).join('; ');
 
-        console.log(`[${stationId}] Fáze 2: Tahám tlustá data (Reset Zoom payload)...`);
+        console.log(`[${stationId}] Fáze 2: Tahám tlustá data (Reset Zoom)...`);
         
-        // TADY JE TO NOVÉ HESLO PŘÍMO Z TVÉHO SOUBORU
+        // SPRÁVNÉ NOVÉ HESLO
         const payload = {
-            "output": "main-figure.figure@fc8ed9b71ea0a147d51f2e8eefbd4e04bbb57a195ec6e77dc418e3162687af34",
-            "outputs": {
-                "id": "main-figure",
-                "property": "figure@fc8ed9b71ea0a147d51f2e8eefbd4e04bbb57a195ec6e77dc418e3162687af34"
-            },
+            "output": "main-figure.figure",
+            "outputs": { "id": "main-figure", "property": "figure" },
             "inputs": [
                 { "id": "location-reset-button", "property": "n_clicks", "value": 1 }
             ],
             "changedPropIds": ["location-reset-button.n_clicks"],
             "state": [
-                // Dash vyžaduje, aby počet položek ve State přesně seděl s tím, co očekává server
                 { "id": "main-figure", "property": "figure", "value": null },
-                { "id": "date-store", "property": "data", "value": { "start_date": "2025-01-01", "end_date": "2026-12-31" } },
+                { "id": "date-store", "property": "data", "value": null },
                 { "id": "lang-store", "property": "data", "value": "cz" },
                 { "id": "_pages_location", "property": "pathname", "value": `/location/${stationId}` },
                 { "id": "location_config", "property": "data", "value": null }
@@ -66,9 +56,7 @@ async function fetchDendroGraph(stationId) {
             body: JSON.stringify(payload)
         });
         
-        if (!res.ok) {
-            throw new Error(`HTTP chyba ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`HTTP chyba ${res.status}`);
         
         const json = await res.json();
         
@@ -90,14 +78,13 @@ async function fetchDendroGraph(stationId) {
         
         if (!traces) {
             const dump = JSON.stringify(json).substring(0, 150);
-            throw new Error(`Odpověď neobsahuje graf: ${dump}`);
+            throw new Error(`Odpověď neobsahuje graf. DendroNet poslal: ${dump}`);
         }
 
         let times = [], temp = [], soil = [];
 
         traces.forEach(t => {
             if (!t.name || !t.y) return;
-            
             let vals = [];
             if (t.y.bdata) {
                 vals = decodeB64Float(t.y.bdata).map(v => isNaN(v) ? null : v);
@@ -120,9 +107,8 @@ async function fetchDendroGraph(stationId) {
         return { chyba: e.message, times: [], temp: [], soil: [] };
     }
 }
-// --- KONEC NOVÝCH FUNKCÍ ---
 
-
+// --- HLAVNÍ BUILD PROCES ---
 async function build() {
   try {
     console.log("Stahuji nastavení z motoru...");
@@ -133,26 +119,18 @@ async function build() {
 
     const compiledNews = [];
     
-    // Projdeme všechny zprávy a STÁHNEME je přímo v tomto skriptu
     for (const feed of appData.news) {
       if (feed.isPublic === false) continue;
-      
       try {
-        console.log(`Stahuji feed: ${feed.label} (${feed.url})`);
+        console.log(`Stahuji feed: ${feed.label}`);
         const feedRes = await fetch(feed.url);
         const text = await feedRes.text();
-        
-        compiledNews.push({
-          label: feed.label,
-          limit: feed.limit,
-          rawText: text 
-        });
+        compiledNews.push({ label: feed.label, limit: feed.limit, rawText: text });
       } catch (e) {
         console.error(`Chyba při stahování feedu ${feed.label}:`, e.message);
       }
     }
     
-    // --- NOVÉ: Stáhneme živá data z lesů ---
     console.log("Jdu do lesa tahat data o přírodě...");
     const natureData = {
         jetrichovice: await fetchDendroGraph('CZ_212_NS_Jetrichovice'),
@@ -162,10 +140,9 @@ async function build() {
     const finalData = {
       radio: appData.radio.filter(r => r.isPublic !== false),
       news: compiledNews,
-      nature: natureData // Přibalíme lesy k rádiu a zprávám!
+      nature: natureData
     };
     
-    // Uložíme zkompilovaná data do statického souboru
     fs.writeFileSync('data.json', JSON.stringify(finalData));
     console.log("data.json úspěšně vygenerován i s lesními senzory!");
 
