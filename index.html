@@ -1630,63 +1630,6 @@ function srRefresh() {
   srLoadDoprava();
 }
 
-// Pomocná funkce pro dekódování z Plotly Base64 formátu
-function decodeB64Float(b64) {
-    const raw = atob(b64);
-    const bytes = new Uint8Array(raw.length);
-    for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-    return Array.from(new Float64Array(bytes.buffer));
-}
-
-// Inicializace záložky Příroda
-async function initNature() {
-    await srLoadDeps(); // Načtení Chart.js (využíváme tvou existující funkci)
-
-    // Data už máme stažená od našeho robota v build.js!
-	console.log("Co mi přišlo za data:", appData.nature); // <--- Přidej tohle
-    if (appData.nature) {
-        renderNatureChart('chart-jetrichovice', appData.nature.jetrichovice);
-        renderNatureChart('chart-ralsko', appData.nature.ralsko);
-    } else {
-        document.getElementById('load-jetrichovice').innerHTML = "⏳ Čekám na data z motoru (zkuste obnovit)...";
-        document.getElementById('load-ralsko').innerHTML = "⏳ Čekám na data z motoru...";
-    }
-}
-
-// Vykreslení grafu z hotových dat
-function renderNatureChart(canvasId, dataObj) {
-    const loader = document.getElementById(`load-${canvasId.split('-')[1]}`);
-    if (!dataObj || !dataObj.times || dataObj.times.length === 0) {
-        if (loader) loader.innerHTML = "<span style='color:var(--danger)'>⚠️ Data nejsou dočasně k dispozici.</span>";
-        return;
-    }
-    
-    if (loader) loader.style.display = 'none';
-
-    if (window[`chart_${canvasId}`]) window[`chart_${canvasId}`].destroy();
-    const ctx = document.getElementById(canvasId).getContext('2d');
-    const dark = !document.body.classList.contains('theme-white');
-
-    window[`chart_${canvasId}`] = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: dataObj.times,
-            datasets: [
-                { label: 'Teplota vzduchu (°C)', data: dataObj.temp, borderColor: '#ffae00', tension: 0.3, pointRadius: 0, yAxisID: 'y' },
-                { label: 'Vlhkost půdy (%)', data: dataObj.soil, borderColor: '#0dcaf0', tension: 0.3, pointRadius: 0, yAxisID: 'y1' }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            scales: {
-                x: { ticks: { maxTicksLimit: 8, color: dark ? '#aaa' : '#555' }, grid: { color: dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.07)' } },
-                y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Teplota (°C)', color: '#ffae00' }, ticks: { color: '#ffae00' } },
-                y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Vlhkost (%)', color: '#0dcaf0' }, ticks: { color: '#0dcaf0' }, grid: { drawOnChartArea: false } }
-            }
-        }
-    });
-}
  
 </script>
 
