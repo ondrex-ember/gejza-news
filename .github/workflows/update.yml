@@ -23,6 +23,7 @@ jobs:
       - name: Spuštění kompilátoru
         env:
           GAS_URL: ${{ secrets.GAS_URL }}
+          NBSENSE_URL: ${{ secrets.NBSENSE_URL }}
         run: node build.js
 
       - name: Commit a Push hotových dat
