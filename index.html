@@ -810,21 +810,69 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="sr-section-line"></div>
     </div>
 
+    <!-- JETŘICHOVICE -->
     <div class="sr-card">
-      <div class="sr-card-header"><div class="sr-card-title">🌲 Les Jetřichovice</div></div>
+      <div class="sr-card-header"><div class="sr-card-title">🌲 Les Jetřichovice · Teplota + Vlhkost půdy</div></div>
       <div class="sr-chart-wrap">
         <canvas id="chart-jetrichovice"></canvas>
         <div class="sr-chart-loading" id="load-jetrichovice" style="display:block;">⏳ Tahám data ze stromů...</div>
       </div>
     </div>
-
     <div class="sr-card">
-      <div class="sr-card-header"><div class="sr-card-title">🌲 Les Ralsko</div></div>
+      <div class="sr-card-header"><div class="sr-card-title">🌲 Les Jetřichovice · Podmínky půdy (SWP + SWC)</div></div>
+      <div class="sr-chart-wrap">
+        <canvas id="chart-jetrichovice-soil"></canvas>
+      </div>
+    </div>
+    <div class="sr-card">
+      <div class="sr-card-header"><div class="sr-card-title">🌲 Les Jetřichovice · Světlo PAR + Vlhkost vzduchu</div></div>
+      <div class="sr-chart-wrap">
+        <canvas id="chart-jetrichovice-par"></canvas>
+      </div>
+    </div>
+    <div class="sr-card">
+      <div class="sr-card-header"><div class="sr-card-title">🌲 Les Jetřichovice · Vodní deficit stromu TWD</div></div>
+      <div class="sr-chart-wrap" style="height:140px;">
+        <canvas id="chart-jetrichovice-twd"></canvas>
+      </div>
+    </div>
+
+    <!-- RALSKO -->
+    <div class="sr-card">
+      <div class="sr-card-header"><div class="sr-card-title">🌲 Les Ralsko · Teplota + Vlhkost půdy</div></div>
       <div class="sr-chart-wrap">
         <canvas id="chart-ralsko"></canvas>
         <div class="sr-chart-loading" id="load-ralsko" style="display:block;">⏳ Tahám data ze stromů...</div>
       </div>
     </div>
+    <div class="sr-card">
+      <div class="sr-card-header"><div class="sr-card-title">🌲 Les Ralsko · Podmínky půdy (SWP + SWC)</div></div>
+      <div class="sr-chart-wrap">
+        <canvas id="chart-ralsko-soil"></canvas>
+      </div>
+    </div>
+    <div class="sr-card">
+      <div class="sr-card-header"><div class="sr-card-title">🌲 Les Ralsko · Světlo PAR + Vlhkost vzduchu</div></div>
+      <div class="sr-chart-wrap">
+        <canvas id="chart-ralsko-par"></canvas>
+      </div>
+    </div>
+    <div class="sr-card">
+      <div class="sr-card-header"><div class="sr-card-title">🌲 Les Ralsko · Vodní deficit stromu TWD</div></div>
+      <div class="sr-chart-wrap" style="height:140px;">
+        <canvas id="chart-ralsko-twd"></canvas>
+      </div>
+    </div>
+
+    <!-- BOBERSKÝ POTOK -->
+    <div class="sr-card">
+      <div class="sr-card-header"><div class="sr-card-title">💧 Boberský potok · Svor – hladina (cm)</div></div>
+      <div class="sr-chart-wrap">
+        <canvas id="chart-bobersky"></canvas>
+        <div class="sr-chart-loading" id="load-bobersky" style="display:block;">⏳ Načítám hladinu potoka...</div>
+      </div>
+    </div>
+
   </div>
 
 </div>
@@ -1659,67 +1707,112 @@ function srRefresh() {
 
 /* ── Příroda (Z NBSense) ──────────────────────────────────────── */
 async function initNature() {
-  // Nejprve si půjčíme chytrou funkci z tvého Smart Regionu na načtení Chart.js
-  await srLoadDeps(); 
+  await srLoadDeps();
   renderNature();
 }
 
 function renderNature() {
   if (!appData.nature) return;
-  
-  // Zpracování Jetřichovic
-  const loadJet = document.getElementById('load-jetrichovice');
-  if (loadJet) loadJet.style.display = 'none'; // Schová "Tahám data ze stromů..."
-  
-  if (appData.nature.jetrichovice && appData.nature.jetrichovice.times && appData.nature.jetrichovice.times.length > 0) {
-      renderChart(appData.nature.jetrichovice, 'chart-jetrichovice');
-  } else {
-      const boxJet = document.getElementById('chart-jetrichovice');
-      if (boxJet) boxJet.parentElement.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--muted); font-size: 13px;">Data ze senzoru nejsou dočasně k dispozici.</div>`;
-  }
 
-  // Zpracování Ralska
-  const loadRal = document.getElementById('load-ralsko');
-  if (loadRal) loadRal.style.display = 'none'; // Schová "Tahám data ze stromů..."
-  
-  if (appData.nature.ralsko && appData.nature.ralsko.times && appData.nature.ralsko.times.length > 0) {
-      renderChart(appData.nature.ralsko, 'chart-ralsko');
-  } else {
-      const boxRal = document.getElementById('chart-ralsko');
-      if (boxRal) boxRal.parentElement.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--muted); font-size: 13px;">Data ze senzoru nejsou dočasně k dispozici.</div>`;
-  }
-}
-
-/* ── Vykreslení grafu (Chart.js) ──────────────────────────────── */
-function renderChart(dataObj, canvasId) {
-  if (!dataObj || !dataObj.times) return;
-  if (window[`chart_${canvasId}`]) window[`chart_${canvasId}`].destroy();
-  
-  const ctx = document.getElementById(canvasId).getContext('2d');
   const dark = !document.body.classList.contains('theme-white');
   const grid = dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.07)';
   const tick = dark ? '#aaa' : '#555';
 
-  window[`chart_${canvasId}`] = new Chart(ctx, {
+  // Helper: zničí starý chart a vytvoří nový
+  function makeChart(canvasId, datasets, scales) {
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+    if (window['_nc_' + canvasId]) { window['_nc_' + canvasId].destroy(); }
+    window['_nc_' + canvasId] = new Chart(el.getContext('2d'), {
       type: 'line',
-      data: {
-          labels: dataObj.times,
-          datasets: [
-              { label: 'Teplota vzduchu (°C)', data: dataObj.temp, borderColor: '#ffae00', tension: 0.3, pointRadius: 0, yAxisID: 'y' },
-              { label: 'Vlhkost půdy (%)', data: dataObj.soil || [], borderColor: '#0dcaf0', tension: 0.3, pointRadius: 0, yAxisID: 'y1' }
-          ]
-      },
+      data: { labels: datasets[0].labels, datasets: datasets.map(d => ({
+        label: d.label, data: d.data, borderColor: d.color,
+        backgroundColor: d.fill ? d.color.replace(')', ',0.10)').replace('rgb','rgba') : 'transparent',
+        fill: d.fill || false, tension: 0.3, pointRadius: 0, spanGaps: true,
+        borderWidth: d.width || 1.5, borderDash: d.dash || [],
+        yAxisID: d.axis || 'y'
+      }))},
       options: {
-          responsive: true, maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { display: true, labels: { color: tick } } },
-          scales: {
-              x: { ticks: { maxTicksLimit: 8, color: tick }, grid: { color: grid } },
-              y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Teplota (°C)', color: '#ffae00' }, ticks: { color: tick }, grid: { color: grid } },
-              y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Vlhkost (%)', color: '#0dcaf0' }, ticks: { color: tick }, grid: { drawOnChartArea: false } }
-          }
+        responsive: true, maintainAspectRatio: false, animation: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { display: true, position: 'top', labels: { color: tick, font: { size: 11 }, boxWidth: 12, padding: 8 } } },
+        scales: Object.assign({
+          x: { ticks: { maxTicksLimit: 8, color: tick, font: { size: 10 } }, grid: { color: grid } }
+        }, scales)
       }
-  });
+    });
+  }
+
+  // Helper: schovat loading spinner
+  function hideLoad(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+
+  // ── Vykreslení pro jednu lokalitu ─────────────────────────────
+  function renderLoc(loc, prefix) {
+    if (!loc || !loc.times || !loc.times.length) return;
+    const L = loc.times;
+
+    hideLoad('load-' + prefix);
+
+    // Graf 1: Teplota vzduchu + teplota půdy
+    makeChart('chart-' + prefix, [
+      { labels: L, label: 'Teplota vzduchu (°C)', data: loc.temp,      color: '#ffae00', axis: 'y'  },
+      { labels: L, label: 'Teplota půdy (°C)',    data: loc.soil_temp, color: '#a78c5a', axis: 'y'  },
+      { labels: L, label: 'Vlhkost půdy (SWC)',   data: loc.soil,      color: '#0dcaf0', axis: 'y1' }
+    ], {
+      y:  { position: 'left',  title: { display: true, text: '°C',  color: '#ffae00' }, ticks: { color: tick }, grid: { color: grid } },
+      y1: { position: 'right', title: { display: true, text: 'SWC', color: '#0dcaf0' }, ticks: { color: tick }, grid: { drawOnChartArea: false } }
+    });
+
+    // Graf 2: SWP + SWC
+    makeChart('chart-' + prefix + '-soil', [
+      { labels: L, label: 'SWP (kPa)',      data: loc.swp,  color: '#dc3545', axis: 'y'  },
+      { labels: L, label: 'Vlhkost SWC (-)',data: loc.soil, color: '#0d6efd', axis: 'y1' }
+    ], {
+      y:  { position: 'left',  title: { display: true, text: 'SWP [kPa]', color: '#dc3545' }, ticks: { color: tick }, grid: { color: grid } },
+      y1: { position: 'right', title: { display: true, text: 'SWC [-]',   color: '#0d6efd' }, ticks: { color: tick }, grid: { drawOnChartArea: false } }
+    });
+
+    // Graf 3: PAR + vlhkost vzduchu
+    makeChart('chart-' + prefix + '-par', [
+      { labels: L, label: 'PAR (µmol/m²s)',    data: loc.par,     color: '#ffc107', fill: true, axis: 'y'  },
+      { labels: L, label: 'Vlhkost vzduchu (%)', data: loc.air_hum, color: '#0dcaf0', axis: 'y1' }
+    ], {
+      y:  { position: 'left',  title: { display: true, text: 'PAR', color: '#ffc107' }, ticks: { color: tick }, grid: { color: grid } },
+      y1: { position: 'right', title: { display: true, text: '%',   color: '#0dcaf0' }, ticks: { color: tick }, grid: { drawOnChartArea: false } }
+    });
+
+    // Graf 4: TWD
+    makeChart('chart-' + prefix + '-twd', [
+      { labels: L, label: 'TWD (µm)', data: loc.twd, color: '#e63946', fill: true, axis: 'y' }
+    ], {
+      y: { position: 'left', title: { display: true, text: 'TWD [µm]', color: '#e63946' }, ticks: { color: tick }, grid: { color: grid } }
+    });
+  }
+
+  // ── Jetřichovice + Ralsko ──────────────────────────────────────
+  renderLoc(appData.nature.jetrichovice, 'jetrichovice');
+  renderLoc(appData.nature.ralsko,       'ralsko');
+
+  // ── Boberský potok ─────────────────────────────────────────────
+  hideLoad('load-bobersky');
+  const bob = appData.nature.bobersky;
+  if (bob && bob.times && bob.times.length) {
+    makeChart('chart-bobersky', [
+      { labels: bob.times, label: 'Hladina Boberský potok (cm)', data: bob.hladina, color: '#00b4d8', fill: true, axis: 'y' }
+    ], {
+      y: { position: 'left', title: { display: true, text: 'cm', color: '#00b4d8' }, ticks: { color: tick }, grid: { color: grid } }
+    });
+  } else {
+    const el = document.getElementById('chart-bobersky');
+    if (el) el.parentElement.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">Data o hladině nejsou k dispozici.</div>';
+  }
+}
+
+/* ── Původní renderChart zachován pro zpětnou kompatibilitu ────── */
+function renderChart(dataObj, canvasId) {
+  if (!appData.nature) return;
+  // přesměruj na nový renderNature
+  renderNature();
 }
  
 </script>
