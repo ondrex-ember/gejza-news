@@ -864,15 +864,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
     </div>
 
-    <!-- BOBERSKÝ POTOK -->
-    <div class="sr-card">
-      <div class="sr-card-header"><div class="sr-card-title">💧 Boberský potok · Svor – hladina (cm)</div></div>
-      <div class="sr-chart-wrap">
-        <canvas id="chart-bobersky"></canvas>
-        <div class="sr-chart-loading" id="load-bobersky" style="display:block;">⏳ Načítám hladinu potoka...</div>
-      </div>
-    </div>
-
   </div>
 
 </div>
@@ -1792,20 +1783,6 @@ function renderNature() {
   // ── Jetřichovice + Ralsko ──────────────────────────────────────
   renderLoc(appData.nature.jetrichovice, 'jetrichovice');
   renderLoc(appData.nature.ralsko,       'ralsko');
-
-  // ── Boberský potok ─────────────────────────────────────────────
-  hideLoad('load-bobersky');
-  const bob = appData.nature.bobersky;
-  if (bob && bob.times && bob.times.length) {
-    makeChart('chart-bobersky', [
-      { labels: bob.times, label: 'Hladina Boberský potok (cm)', data: bob.hladina, color: '#00b4d8', fill: true, axis: 'y' }
-    ], {
-      y: { position: 'left', title: { display: true, text: 'cm', color: '#00b4d8' }, ticks: { color: tick }, grid: { color: grid } }
-    });
-  } else {
-    const el = document.getElementById('chart-bobersky');
-    if (el) el.parentElement.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">Data o hladině nejsou k dispozici.</div>';
-  }
 }
 
 /* ── Původní renderChart zachován pro zpětnou kompatibilitu ────── */
