@@ -1706,7 +1706,7 @@ function renderChart(dataObj, canvasId) {
           labels: dataObj.times,
           datasets: [
               { label: 'Teplota vzduchu (°C)', data: dataObj.temp, borderColor: '#ffae00', tension: 0.3, pointRadius: 0, yAxisID: 'y' },
-              { label: 'Vlhkost půdy (%)', data: dataObj.soil, borderColor: '#0dcaf0', tension: 0.3, pointRadius: 0, yAxisID: 'y1' }
+              { label: 'Vlhkost půdy (%)', data: dataObj.soil || [], borderColor: '#0dcaf0', tension: 0.3, pointRadius: 0, yAxisID: 'y1' }
           ]
       },
       options: {
