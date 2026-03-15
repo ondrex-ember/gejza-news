@@ -1398,7 +1398,9 @@ async function initSmartRegion() {
   srFetch(1, 'auto');
   srLoadDoprava();
   setInterval(srLoadDoprava, 5 * 60 * 1000);
-}
+  fetchDendro('Ralsko', 7);
+  fetchDendro('Jetřichovice', 7);
+  }
  
 /* ── Lazy load závislostí ─────────────────────────────────────── */
 function srLoadDeps() {
@@ -1442,6 +1444,29 @@ async function srFetch(days, gran) {
       ? '⚙️ Nastav GAS_API_URL v kódu'
       : '⚠️ Chyba připojení k NBSense — zkontroluj GAS deployment a CORS';
     console.error('SR fetch error:', e);
+  }
+}
+
+/* ── Fetch specifických dat pro DendroNet ────────────────────── */
+async function fetchDendro(lokalita, days = 7) {
+  try {
+    // Voláme ten nový endpoint pro formát 'dendro'
+    // 'lokalita' by měla být buď 'Ralsko' nebo 'Jetřichovice'
+    const url = `${GAS_API_URL}?format=dendro&loc=${lokalita}&days=${days}&_t=${Date.now()}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    
+    // Získáme čistá data o stromech (z tvé funkce getDendroData)
+    const data = await res.json();
+    
+    // Tady zavoláš svou funkci, která data pošle do těch prázdných boxů
+    // Například:
+    // renderDendroCharts(data.rows, lokalita);
+    console.log(`Dendro data pro ${lokalita}:`, data);
+
+  } catch(e) {
+    console.error(`Chyba připojení pro les ${lokalita}:`, e);
+    // Tady můžeš cíleně vypsat tu chybovou hlášku do boxu
   }
 }
  
