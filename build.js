@@ -1,16 +1,13 @@
 const fs = require('fs');
 
-// URL si GitHub přečte ze svých tajných Secrets
 const GAS_URL = process.env.GAS_URL; 
 
-// --- POMOCNÁ FUNKCE ---
 function decodeB64Float(b64) {
     const raw = Buffer.from(b64, 'base64');
     const float64Array = new Float64Array(raw.buffer, raw.byteOffset, raw.length / 8);
     return Array.from(float64Array);
 }
 
-// --- HLAVNÍ FUNKCE ---
 async function fetchDendroGraph(stationId) {
     const pageUrl = `https://dendronet.cz/location/${stationId}`;
     const apiUrl = 'https://dendronet.cz/_dash-update-component';
@@ -25,21 +22,30 @@ async function fetchDendroGraph(stationId) {
         const rawCookies = pageRes.headers.get('set-cookie');
         if (rawCookies) cookieHeader = rawCookies.split(',').map(c => c.split(';')[0]).join('; ');
 
-        console.log(`[${stationId}] Fáze 2: Tahám tlustá data přes Pages Content...`);
+        console.log(`[${stationId}] Fáze 2: Tahám tlustá data (Opravený Reset Zoom)...`);
         
-        // Vracíme se k payloadu, který prokazatelně neházel chybu 500
+        // --- OPRAVA: Vypočítáme přesná data, aby server nepadal na chybě 500 ---
+        const today = new Date();
+        const lastYear = new Date();
+        lastYear.setFullYear(today.getFullYear() - 1);
+        const formatDate = (d) => d.toISOString().split('T')[0]; // Formát YYYY-MM-DD
+
         const payload = {
-            "output": ".._pages_content.children..._pages_store.data..",
-            "outputs": [
-                { "id": "_pages_content", "property": "children" },
-                { "id": "_pages_store", "property": "data" }
-            ],
+            "output": "main-figure.figure",
+            "outputs": { "id": "main-figure", "property": "figure" },
             "inputs": [
-                { "id": "_pages_location", "property": "pathname", "value": `/location/${stationId}` },
-                { "id": "_pages_location", "property": "search", "value": "" },
-                { "id": "lang-store", "property": "data", "value": "cz" }
+                { "id": "location-reset-button", "property": "n_clicks", "value": 1 }
             ],
-            "changedPropIds": ["_pages_location.pathname", "_pages_location.search"]
+            "changedPropIds": ["location-reset-button.n_clicks"],
+            "parsedChangedPropsIds": ["location-reset-button.n_clicks"],
+            "state": [
+                { "id": "main-figure", "property": "figure", "value": null },
+                // TADY BYLA TA CHYBA 500! Teď už mu posíláme reálná data:
+                { "id": "date-store", "property": "data", "value": { "start_date": formatDate(lastYear), "end_date": formatDate(today) } },
+                { "id": "lang-store", "property": "data", "value": "cz" },
+                { "id": "_pages_location", "property": "pathname", "value": `/location/${stationId}` },
+                { "id": "location_config", "property": "data", "value": null }
+            ]
         };
 
         const res = await fetch(apiUrl, {
@@ -58,7 +64,6 @@ async function fetchDendroGraph(stationId) {
         
         const json = await res.json();
         
-        // AGRESIVNÍ HLEDAČ: Prohrabe strukturu matrjošky až na úplné dno
         let traces = null;
         function searchForData(node) {
             if (traces) return;
@@ -66,6 +71,7 @@ async function fetchDendroGraph(stationId) {
 
             if (Array.isArray(node)) {
                 if (node.length > 0 && node[0] && typeof node[0] === 'object' && 'name' in node[0]) {
+                    // Bereme jak český tak anglický název
                     if (node.some(t => t.name && (t.name.includes('Temperature') || t.name.includes('Teplota')))) {
                         traces = node;
                         return;
@@ -83,11 +89,10 @@ async function fetchDendroGraph(stationId) {
             }
         }
         
-        // Spustíme hledače
         searchForData(json);
         
         if (!traces) {
-            throw new Error(`Graf sice dorazil, ale nenalezli jsme ho ve struktuře.`);
+            throw new Error(`Graf nenalezen. DendroNet poslal toto: ${JSON.stringify(json).substring(0, 150)}`);
         }
 
         let times = [], temp = [], soil = [];
@@ -119,7 +124,6 @@ async function fetchDendroGraph(stationId) {
     }
 }
 
-// --- HLAVNÍ BUILD PROCES ---
 async function build() {
   try {
     console.log("Stahuji nastavení z motoru...");
