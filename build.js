@@ -10,7 +10,7 @@ function decodeB64Float(b64) {
     return Array.from(float64Array);
 }
 
-// --- HLAVNÍ FUNKCE (FINÁLNÍ RESET ZOOM VERZE) ---
+// --- HLAVNÍ FUNKCE ---
 async function fetchDendroGraph(stationId) {
     const pageUrl = `https://dendronet.cz/location/${stationId}`;
     const apiUrl = 'https://dendronet.cz/_dash-update-component';
@@ -25,23 +25,21 @@ async function fetchDendroGraph(stationId) {
         const rawCookies = pageRes.headers.get('set-cookie');
         if (rawCookies) cookieHeader = rawCookies.split(',').map(c => c.split(';')[0]).join('; ');
 
-        console.log(`[${stationId}] Fáze 2: Tahám tlustá data (Reset Zoom)...`);
+        console.log(`[${stationId}] Fáze 2: Tahám tlustá data přes Pages Content...`);
         
-        // SPRÁVNÉ NOVÉ HESLO
+        // Vracíme se k payloadu, který prokazatelně neházel chybu 500
         const payload = {
-            "output": "main-figure.figure",
-            "outputs": { "id": "main-figure", "property": "figure" },
-            "inputs": [
-                { "id": "location-reset-button", "property": "n_clicks", "value": 1 }
+            "output": ".._pages_content.children..._pages_store.data..",
+            "outputs": [
+                { "id": "_pages_content", "property": "children" },
+                { "id": "_pages_store", "property": "data" }
             ],
-            "changedPropIds": ["location-reset-button.n_clicks"],
-            "state": [
-                { "id": "main-figure", "property": "figure", "value": null },
-                { "id": "date-store", "property": "data", "value": null },
-                { "id": "lang-store", "property": "data", "value": "cz" },
+            "inputs": [
                 { "id": "_pages_location", "property": "pathname", "value": `/location/${stationId}` },
-                { "id": "location_config", "property": "data", "value": null }
-            ]
+                { "id": "_pages_location", "property": "search", "value": "" },
+                { "id": "lang-store", "property": "data", "value": "cz" }
+            ],
+            "changedPropIds": ["_pages_location.pathname", "_pages_location.search"]
         };
 
         const res = await fetch(apiUrl, {
@@ -60,31 +58,43 @@ async function fetchDendroGraph(stationId) {
         
         const json = await res.json();
         
+        // AGRESIVNÍ HLEDAČ: Prohrabe strukturu matrjošky až na úplné dno
         let traces = null;
-        function findTraces(obj) {
-            if (!obj || typeof obj !== 'object') return;
+        function searchForData(node) {
             if (traces) return;
-            if (Array.isArray(obj)) {
-                for (let item of obj) findTraces(item);
-            } else {
-                if (obj.data && Array.isArray(obj.data) && obj.data.some(t => t.name && t.name.includes("Temperature"))) {
-                    traces = obj.data;
-                    return;
+            if (!node || typeof node !== 'object') return;
+
+            if (Array.isArray(node)) {
+                if (node.length > 0 && node[0] && typeof node[0] === 'object' && 'name' in node[0]) {
+                    if (node.some(t => t.name && (t.name.includes('Temperature') || t.name.includes('Teplota')))) {
+                        traces = node;
+                        return;
+                    }
                 }
-                for (let key in obj) findTraces(obj[key]);
+                for (let item of node) searchForData(item);
+            } else {
+                if (node.data && Array.isArray(node.data)) {
+                     if (node.data.some(t => t.name && (t.name.includes('Temperature') || t.name.includes('Teplota')))) {
+                        traces = node.data;
+                        return;
+                    }
+                }
+                for (let key in node) searchForData(node[key]);
             }
         }
-        findTraces(json);
+        
+        // Spustíme hledače
+        searchForData(json);
         
         if (!traces) {
-            const dump = JSON.stringify(json).substring(0, 150);
-            throw new Error(`Odpověď neobsahuje graf. DendroNet poslal: ${dump}`);
+            throw new Error(`Graf sice dorazil, ale nenalezli jsme ho ve struktuře.`);
         }
 
         let times = [], temp = [], soil = [];
 
         traces.forEach(t => {
             if (!t.name || !t.y) return;
+            
             let vals = [];
             if (t.y.bdata) {
                 vals = decodeB64Float(t.y.bdata).map(v => isNaN(v) ? null : v);
@@ -95,7 +105,8 @@ async function fetchDendroGraph(stationId) {
             if (t.x && Array.isArray(t.x) && times.length === 0) {
                 times = t.x.map(x => String(x).substring(5, 16).replace('T', ' '));
             }
-            if (t.name.includes("Air Temperature")) temp = vals;
+            
+            if (t.name.includes("Air Temperature") || t.name.includes("Teplota")) temp = vals;
             if (t.name.includes("SWC CS616") || t.name.includes("půdní vlhkost") || t.name.includes("soil moisture")) {
                 soil = vals.map(v => v !== null ? Number((v * 100).toFixed(2)) : null);
             }
