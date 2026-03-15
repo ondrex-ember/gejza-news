@@ -806,8 +806,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 	<div id="smartregion-container"></div>
 	<div id="nature-container" style="display:none; flex-direction:column; gap:20px;">
     <div class="sr-section-header">
+    <div class="sr-section-header">
       <div class="sr-section-title">Příroda a Lesy · Živá data DendroNet</div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        <button class="sr-period-btn active" data-nature-days="30"  onclick="setNatureDays(30,this)">30d</button>
+        <button class="sr-period-btn"        data-nature-days="90"  onclick="setNatureDays(90,this)">90d</button>
+        <button class="sr-period-btn"        data-nature-days="180" onclick="setNatureDays(180,this)">180d</button>
+        <button class="sr-period-btn"        data-nature-days="365" onclick="setNatureDays(365,this)">365d</button>
+      </div>
       <div class="sr-section-line"></div>
+      <small id="nature-info" style="color:var(--muted);font-size:11px;white-space:nowrap;"></small>
     </div>
 
     <div class="sr-card">
@@ -1658,10 +1666,48 @@ function srRefresh() {
   srLoadDoprava();
 }
 
-/* ── Příroda (Z NBSense) ──────────────────────────────────────── */
+let natureDays = 30;
+
 async function initNature() {
-  // Nejprve si půjčíme chytrou funkci z tvého Smart Regionu na načtení Chart.js
-  await srLoadDeps(); 
+  await srLoadDeps();
+  await fetchNatureData(natureDays);
+}
+
+async function setNatureDays(days, btn) {
+  natureDays = days;
+  document.querySelectorAll('[data-nature-days]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  // zobraz loading
+  ['jetrichovice','ralsko'].forEach(p => {
+    const el = document.getElementById('load-' + p);
+    if (el) { el.style.display = 'block'; el.textContent = '⏳ Tahám data ze stromů...'; }
+  });
+  await fetchNatureData(days);
+}
+
+async function fetchNatureData(days) {
+  const info = document.getElementById('nature-info');
+  try {
+    const url = GAS_API_URL + '?format=nature&days=' + days + '&_t=' + Date.now();
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    appData.nature = data;
+    if (info) {
+      const jet = data.jetrichovice;
+      if (jet && jet.times && jet.times.length) {
+        info.textContent = jet.times.length + ' měření · ' + jet.times[0].substring(0,10) + ' → ' + jet.times[jet.times.length-1].substring(0,10);
+      }
+    }
+  } catch(e) {
+    console.error('Příroda fetch error:', e);
+    if (info) info.textContent = '⚠️ Chyba načítání';
+    ['jetrichovice','ralsko'].forEach(p => {
+      const el = document.getElementById('load-' + p);
+      if (el) { el.style.display = 'block'; el.textContent = '⚠️ Chyba načítání dat ze stromů'; }
+    });
+    return;
+  }
   renderNature();
 }
 
