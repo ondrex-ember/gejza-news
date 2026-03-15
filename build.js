@@ -6,7 +6,6 @@ const GAS_URL = process.env.GAS_URL;
 
 // --- NOVÉ: Pomocné funkce pro DendroNet ---
 
-// 1. Dekódovací funkce (tahle nám tam teď chyběla!)
 function decodeB64Float(b64) {
     const raw = Buffer.from(b64, 'base64');
     const float64Array = new Float64Array(raw.buffer, raw.byteOffset, raw.length / 8);
@@ -27,19 +26,15 @@ async function fetchDendroGraph(stationId) {
             { "id": "_pages_location", "property": "search", "value": "" },
             { "id": "lang-store", "property": "data", "value": "cz" }
         ],
-        "changedPropIds": [
-            "_pages_location.pathname",
-            "_pages_location.search"
-        ]
+        "changedPropIds": ["_pages_location.pathname", "_pages_location.search"]
     };
 
     try {
-        console.log(`Stahuji les z DendroNetu: ${stationId}`);
         const res = await fetch(url, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
                 'Origin': 'https://dendronet.cz',
                 'Referer': `https://dendronet.cz/location/${stationId}`
             },
@@ -47,8 +42,7 @@ async function fetchDendroGraph(stationId) {
         });
         
         if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(`HTTP chyba ${res.status}: ${errText.substring(0, 100)}`);
+            throw new Error(`HTTP chyba ${res.status}: ${await res.text()}`.substring(0, 200));
         }
         
         const json = await res.json();
@@ -57,7 +51,6 @@ async function fetchDendroGraph(stationId) {
         function findTraces(obj) {
             if (!obj || typeof obj !== 'object') return;
             if (traces) return;
-            
             if (Array.isArray(obj)) {
                 for (let item of obj) findTraces(item);
             } else {
@@ -68,41 +61,39 @@ async function fetchDendroGraph(stationId) {
                 for (let key in obj) findTraces(obj[key]);
             }
         }
-
         findTraces(json);
         
-        if (!traces) {
-            throw new Error("Graf nebyl v odpovědi nalezen.");
-        }
+        if (!traces) throw new Error("Struktura JSONu neobsahuje data grafu.");
 
         let times = [];
         let temp = [];
         let soil = [];
 
         traces.forEach(t => {
-            if (!t.name || !t.y || !t.y.bdata) return;
-            
-            const vals = decodeB64Float(t.y.bdata).map(v => isNaN(v) ? null : v);
+            try {
+                if (!t.name || !t.y || !t.y.bdata) return;
+                const vals = decodeB64Float(t.y.bdata).map(v => isNaN(v) ? null : v);
 
-            // OPRAVA: Bezpečné vytažení časů z jakékoliv stopy, která je zrovna má
-            if (t.x && Array.isArray(t.x) && times.length === 0) {
-                times = t.x.map(x => String(x).substring(5, 16).replace('T', ' '));
-            }
-
-            if (t.name.includes("Air Temperature")) {
-                temp = vals;
-            }
-            if (t.name.includes("SWC CS616")) {
-                soil = vals.map(v => v !== null ? Number((v * 100).toFixed(2)) : null);
+                if (t.x && Array.isArray(t.x) && times.length === 0) {
+                    times = t.x.map(x => String(x).substring(5, 16).replace('T', ' '));
+                }
+                if (t.name.includes("Air Temperature")) temp = vals;
+                if (t.name.includes("SWC CS616")) soil = vals.map(v => v !== null ? Number((v * 100).toFixed(2)) : null);
+            } catch (innerErr) {
+                throw new Error(`Chyba při parsování dat: ${innerErr.message}`);
             }
         });
 
         return { times, temp, soil };
     } catch (e) {
-        console.error(`❌ Chyba stahování DendroNetu u ${stationId}:`, e.message);
-        return null; 
+        // TADY JE TEN TRIK! Místo null vracíme přímo chybovou hlášku.
+        return { 
+            chybaZGithubu: e.message, 
+            times: [], temp: [], soil: [] 
+        };
     }
 }
+
 // --- KONEC NOVÝCH FUNKCÍ ---
 
 
