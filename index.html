@@ -1326,8 +1326,8 @@ async function initSmartRegion() {
       <div class="sr-card-header">
         <div class="sr-card-title">📈 Historie měření</div>
         <div class="sr-period-group">
-          <button class="sr-period-btn" data-days="1">24h</button>
-          <button class="sr-period-btn active" data-days="7">7d</button>
+          <button class="sr-period-btn active" data-days="1">24h</button>
+          <button class="sr-period-btn" data-days="7">7d</button>
           <button class="sr-period-btn" data-days="30">30d</button>
           <button class="sr-period-btn" data-days="60">60d</button>
           <button class="sr-period-btn" data-days="90">90d</button>
@@ -1395,7 +1395,7 @@ async function initSmartRegion() {
  
   srBuildChecks();
   srInitMap();   // ResizeObserver uvnitř čeká na reálné rozměry
-  srFetch(7, 'auto');
+  srFetch(1, 'auto');
   srLoadDoprava();
   setInterval(srLoadDoprava, 5 * 60 * 1000);
 }
