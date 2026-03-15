@@ -18,17 +18,20 @@ async function fetchDendroGraph(stationId) {
     const apiUrl = 'https://dendronet.cz/_dash-update-component';
 
     try {
-        // KROK 1: Nasimulujeme první návštěvu stránky a ukradneme Session Cookies
         console.log(`[${stationId}] Fáze 1: Získávám Cookies...`);
         const pageRes = await fetch(pageUrl, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0' }
         });
         
-        // Zpracování Cookies
-        const rawCookies = pageRes.headers.get('set-cookie');
-        const cookieHeader = rawCookies ? rawCookies.split(',').map(c => c.split(';')[0]).join('; ') : '';
+        // SPRÁVNÉ ČTENÍ COOKIES (Node.js 18+)
+        let cookieHeader = '';
+        if (typeof pageRes.headers.getSetCookie === 'function') {
+            cookieHeader = pageRes.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
+        } else {
+            const raw = pageRes.headers.get('set-cookie');
+            if (raw) cookieHeader = raw.split(',').map(c => c.split(';')[0]).join('; ');
+        }
 
-        // KROK 2: Pošleme POST požadavek s ukradenými Cookies
         console.log(`[${stationId}] Fáze 2: Tahám tlustá data...`);
         const payload = {
             "output": ".._pages_content.children..._pages_store.data..",
@@ -51,18 +54,18 @@ async function fetchDendroGraph(stationId) {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
                 'Origin': 'https://dendronet.cz',
                 'Referer': pageUrl,
-                'Cookie': cookieHeader // TADY JE TO KOUZLO!
+                'Cookie': cookieHeader
             },
             body: JSON.stringify(payload)
         });
         
         if (!res.ok) {
-            throw new Error(`HTTP chyba ${res.status}: ${await res.text()}`.substring(0, 200));
+            throw new Error(`HTTP chyba ${res.status}`);
         }
         
         const json = await res.json();
         
-        // KROK 3: Chytrý hledač dat
+        // VYLEPŠENÝ HLEDAČ: Nehledáme už jen "bdata", hledáme podle názvu grafu
         let traces = null;
         function findTraces(obj) {
             if (!obj || typeof obj !== 'object') return;
@@ -70,7 +73,8 @@ async function fetchDendroGraph(stationId) {
             if (Array.isArray(obj)) {
                 for (let item of obj) findTraces(item);
             } else {
-                if (obj.data && Array.isArray(obj.data) && obj.data.some(t => t.y && t.y.bdata)) {
+                // Stačí, když to má data a jmenuje se to Air Temperature
+                if (obj.data && Array.isArray(obj.data) && obj.data.some(t => t.name && t.name.includes("Temperature"))) {
                     traces = obj.data;
                     return;
                 }
@@ -79,14 +83,26 @@ async function fetchDendroGraph(stationId) {
         }
         findTraces(json);
         
-        if (!traces) throw new Error("Struktura JSONu neobsahuje data grafu. Asi chybí oprávnění z Cookies.");
+        if (!traces) {
+            // Tady se nám vypíše kus toho, co DendroNet poslal místo grafu
+            const dump = JSON.stringify(json).substring(0, 150);
+            throw new Error(`Odpověď neobsahuje graf. DendroNet poslal: ${dump}`);
+        }
 
         let times = [], temp = [], soil = [];
 
         traces.forEach(t => {
-            if (!t.name || !t.y || !t.y.bdata) return;
-            const vals = decodeB64Float(t.y.bdata).map(v => isNaN(v) ? null : v);
+            if (!t.name || !t.y) return;
+            
+            // Podpora pro zakódovaná data (bdata) i normální pole (array)
+            let vals = [];
+            if (t.y.bdata) {
+                vals = decodeB64Float(t.y.bdata).map(v => isNaN(v) ? null : v);
+            } else if (Array.isArray(t.y)) {
+                vals = t.y.map(v => v === null ? null : Number(v));
+            }
 
+            // Osa X (časy)
             if (t.x && Array.isArray(t.x) && times.length === 0) {
                 times = t.x.map(x => String(x).substring(5, 16).replace('T', ' '));
             }
@@ -97,7 +113,6 @@ async function fetchDendroGraph(stationId) {
         return { times, temp, soil };
     } catch (e) {
         console.error(`[${stationId}] KRACH:`, e.message);
-        // Pošleme chybu rovnou do JSONu! Kdyby to spadlo, v prohlížeči uvidíme rovnou důvod.
         return { chyba: e.message, times: [], temp: [], soil: [] };
     }
 }
