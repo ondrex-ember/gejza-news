@@ -3,7 +3,7 @@ const fs = require('fs');
 // URL si GitHub přečte ze svých tajných Secrets
 const GAS_URL = process.env.GAS_URL; 
 
-// --- NOVÉ: Pomocné funkce pro DendroNet ---
+// --- NOVÉ Pomocné funkce pro DendroNet ---
 
 // --- POMOCNÁ FUNKCE ---
 function decodeB64Float(b64) {
