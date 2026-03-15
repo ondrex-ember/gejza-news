@@ -788,6 +788,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <button class="tab-btn" onclick="switchTab('radio', this)">Rádio</button>
     <button class="tab-btn" onclick="switchTab('weather', this)">Počasí</button>
 	<button class="tab-btn" onclick="switchTab('smartregion',this)">Smart Region</button>
+	<button class="tab-btn" onclick="switchTab('nature', this)">Příroda</button>
   </div>
   <button class="btn-refresh" id="refresh-btn" onclick="onRefreshClick()">🔄 Obnovit</button>
 </div>
@@ -1158,6 +1159,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       appData = newData;
       renderNews();
       renderRadio();
+	  if (window.natureLoaded) renderNature();
     } catch (err) {
       console.error('Chyba při obnově dat:', err);
     } finally {
@@ -1361,6 +1363,21 @@ async function initSmartRegion() {
         <div style="color:var(--muted);font-size:13px;">Načítám...</div>
       </div>
     </div>
+	<div id="priroda" class="sr-tab-pane" style="display: none;">
+    <div class="sr-module">
+        <h2>Les Jetřichovice</h2>
+        <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
+            <canvas id="chart-jetrichovice"></canvas>
+        </div>
+    </div>
+    
+    <div class="sr-module mt-4">
+        <h2>Les Ralsko</h2>
+        <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
+            <canvas id="chart-ralsko"></canvas>
+        </div>
+    </div>
+</div>
   `;
  
   // Lazy load Chart.js + Leaflet JS
@@ -1630,6 +1647,70 @@ function srRefresh() {
   srLoadDoprava();
 }
 
+/* ── Příroda (Z NBSense) ──────────────────────────────────────── */
+async function initNature() {
+  // Nejprve si půjčíme chytrou funkci z tvého Smart Regionu na načtení Chart.js
+  await srLoadDeps(); 
+  renderNature();
+}
+
+function renderNature() {
+  if (!appData.nature) return;
+  
+  // Zpracování Jetřichovic
+  const loadJet = document.getElementById('load-jetrichovice');
+  if (loadJet) loadJet.style.display = 'none'; // Schová "Tahám data ze stromů..."
+  
+  if (appData.nature.jetrichovice && appData.nature.jetrichovice.times && appData.nature.jetrichovice.times.length > 0) {
+      renderChart(appData.nature.jetrichovice, 'chart-jetrichovice');
+  } else {
+      const boxJet = document.getElementById('chart-jetrichovice');
+      if (boxJet) boxJet.parentElement.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--muted); font-size: 13px;">Data ze senzoru nejsou dočasně k dispozici.</div>`;
+  }
+
+  // Zpracování Ralska
+  const loadRal = document.getElementById('load-ralsko');
+  if (loadRal) loadRal.style.display = 'none'; // Schová "Tahám data ze stromů..."
+  
+  if (appData.nature.ralsko && appData.nature.ralsko.times && appData.nature.ralsko.times.length > 0) {
+      renderChart(appData.nature.ralsko, 'chart-ralsko');
+  } else {
+      const boxRal = document.getElementById('chart-ralsko');
+      if (boxRal) boxRal.parentElement.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--muted); font-size: 13px;">Data ze senzoru nejsou dočasně k dispozici.</div>`;
+  }
+}
+
+/* ── Vykreslení grafu (Chart.js) ──────────────────────────────── */
+function renderChart(dataObj, canvasId) {
+  if (!dataObj || !dataObj.times) return;
+  if (window[`chart_${canvasId}`]) window[`chart_${canvasId}`].destroy();
+  
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  const dark = !document.body.classList.contains('theme-white');
+  const grid = dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.07)';
+  const tick = dark ? '#aaa' : '#555';
+
+  window[`chart_${canvasId}`] = new Chart(ctx, {
+      type: 'line',
+      data: {
+          labels: dataObj.times,
+          datasets: [
+              { label: 'Teplota vzduchu (°C)', data: dataObj.temp, borderColor: '#ffae00', tension: 0.3, pointRadius: 0, yAxisID: 'y' },
+              { label: 'Vlhkost půdy (%)', data: dataObj.soil, borderColor: '#0dcaf0', tension: 0.3, pointRadius: 0, yAxisID: 'y1' }
+          ]
+      },
+      options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { display: true, labels: { color: tick } } },
+          scales: {
+              x: { ticks: { maxTicksLimit: 8, color: tick }, grid: { color: grid } },
+              y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Teplota (°C)', color: '#ffae00' }, ticks: { color: tick }, grid: { color: grid } },
+              y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Vlhkost (%)', color: '#0dcaf0' }, ticks: { color: tick }, grid: { drawOnChartArea: false } }
+          }
+      }
+  });
+}
  
 </script>
 
