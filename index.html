@@ -941,48 +941,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <canvas id="chart-ralsko-twd"></canvas>
       </div>
     </div>
-
-    `` <!-- WEATHERXM ─ Osobní meteostanice ─────────────────────────────────── -->
-    <div class="sr-section-header" style="margin-top:12px;">
-      <div class="sr-section-title">🌤️ Lokální Meteostanice · WeatherXM</div>
-      <div class="sr-section-line"></div>
-      <small id="wxm-nature-info" style="color:var(--muted);font-size:11px;white-space:nowrap;"></small>
-    </div>
-
-    <!-- Aktuální hodnoty -->
-    <div class="sr-card">
-      <div class="sr-card-header">
-        <div class="sr-card-title">📡 Rare Nickel Troposphere · Aktuální měření</div>
-        <span id="wxm-nature-status" style="font-size:11px;color:var(--muted);">načítám…</span>
-      </div>
-      <div id="wxm-vals-wrap" class="wxm-vals"></div>
-    </div>
-
-    <!-- Teplota + Vlhkost -->
-    <div class="sr-card">
-      <div class="sr-card-header"><div class="sr-card-title">🌡️ WeatherXM · Teplota + Vlhkost vzduchu</div></div>
-      <div class="sr-chart-wrap">
-        <canvas id="chart-wxm-temp"></canvas>
-        <div class="sr-chart-loading" id="load-wxm" style="display:block;">⏳ Načítám data stanice…</div>
-      </div>
-    </div>
-
-    <!-- Vítr + Tlak -->
-    <div class="sr-card">
-      <div class="sr-card-header"><div class="sr-card-title">💨 WeatherXM · Vítr + Atmosferický tlak</div></div>
-      <div class="sr-chart-wrap">
-        <canvas id="chart-wxm-wind"></canvas>
-      </div>
-    </div>
-
-    <!-- Srážky -->
-    <div class="sr-card">
-      <div class="sr-card-header"><div class="sr-card-title">🌧️ WeatherXM · Srážky (mm)</div></div>
-      <div class="sr-chart-wrap" style="height:160px;">
-        <canvas id="chart-wxm-rain"></canvas>
-      </div>
-    </div> ``
-
   </div>
 
 </div>
@@ -1141,10 +1099,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       wxmEl.innerHTML = `
         <div class="wxm-hero-head">
           <div>
-            <div class="wxm-hero-title">📡 Nový Bor · Osobní meteorologická stanice</div>
+            <div class="wxm-hero-title">📡 Nový Bor · Lokální meteorologická stanice</div>
             <div class="wxm-hero-station">${wxm.stationName || 'Rare Nickel Troposphere'}</div>
           </div>
-          <div class="wxm-hero-badge">⚡ WeatherXM PRO</div>
+          <div class="wxm-hero-badge">⚡ WeatherXM</div>
         </div>
         <div class="wxm-hero-main">
           <div class="wxm-hero-temp-big">${wxmLatest.temp !== null ? wxmLatest.temp + '°' : '–'}</div>
@@ -1238,7 +1196,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       wxmEl.className = 'wxm-hero';
       wxmEl.innerHTML = `
         <div class="wxm-hero-head">
-          <div class="wxm-hero-title">📡 Osobní stanice WeatherXM PRO</div>
+          <div class="wxm-hero-title">📡 Lokální stanice WeatherXM</div>
           <div class="wxm-hero-badge" style="opacity:.5;">offline</div>
         </div>
         <div style="padding:16px 20px;font-size:12px;color:var(--muted);">
