@@ -1891,7 +1891,6 @@ async function srLoadDoprava() {
  
     // Uložení do NBSense DB (max 1×/hod) přes GET parametr
     const seg = fcd.find(s=>s.Direction===2)||fcd[0];
-    if (GAS_API_URL !== 'https://script.google.com/macros/s/AKfycbz_-x5owHB7b9lLSroTZrg0H_xIw3ssU2zMsUUUGx8wEr_3MTc2j3cO9eludjgiYFo/exec') {
       fetch(`${GAS_API_URL}?format=saveDoprava&speed=${seg.VD2}&delay=${seg.VD4}&level=${seg.VD10}`).catch(()=>{});
     }
  
