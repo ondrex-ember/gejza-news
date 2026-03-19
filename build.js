@@ -20,7 +20,8 @@ async function build() {
         console.log(`Stahuji feed: ${feed.label}`);
         const feedRes = await fetch(feed.url);
         const text = await feedRes.text();
-        compiledNews.push({ label: feed.label, limit: feed.limit, rawText: text });
+	compiledNews.push({ label: feed.label, limit: feed.limit, 	subTab: feed.subTab, rawText: text });
+
       } catch (e) {
         console.error(`Chyba při stahování feedu ${feed.label}:`, e.message);
       }
