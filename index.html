@@ -200,6 +200,23 @@
       height: 2px; background: var(--act);
     }
 
+    /* SUB-TABS L2 */
+    .subtabs-nav {
+      display: none; gap: 25px; padding: 0 40px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg); align-items: center;
+    }
+    .subtab-btn {
+      background: none; border: none; color: var(--muted);
+      font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
+      padding: 10px 0; cursor: pointer; position: relative;
+    }
+    .subtab-btn.active { color: var(--act); }
+    .subtab-btn.active::after {
+      content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+      height: 2px; background: var(--act); opacity: 0.7;
+    }
+
     .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; width: 100%; box-sizing: border-box; }
 
     /* Theme Buttons */
@@ -858,11 +875,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <button class="tab-btn active" onclick="switchTab('news', this)">Zprávy</button>
     <button class="tab-btn" onclick="switchTab('radio', this)">Rádio</button>
     <button class="tab-btn" onclick="switchTab('weather', this)">Počasí</button>
-	<button class="tab-btn" onclick="switchTab('smartregion',this)">Smart Region</button>
-	<button class="tab-btn" onclick="switchTab('nature', this)">Příroda</button>
+    <button class="tab-btn" onclick="switchTab('smart', this)">Smart</button>
   </div>
   <button class="btn-refresh" id="refresh-btn" onclick="onRefreshClick()">🔄 Obnovit</button>
 </div>
+<div class="subtabs-nav" id="subtabs-nav"></div>
 
 <div class="container">
   <div id="news-container">
@@ -969,6 +986,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   let appData = { news: [], radio: [] };
   let weatherLoaded = false;
   let currentTab = 'news';
+  let activeSubTab = 'Svět';
+
+  const SUB_TABS = {
+    news:    ['Svět', 'ČR', 'Novoborsko'],
+    radio:   ['Svět', 'ČR'],
+    weather: ['Novoborsko', 'ČR'],
+    smart:   ['Okolní senzory', 'Lesy']
+  };
 
   const audio = document.getElementById('audio-player');
   const mainPlayBtn = document.getElementById('btn-main-play');
@@ -1098,7 +1123,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       const dirs = ['S','SSV','SV','VSV','V','VJV','JV','JJV','J','JJZ','JZ','ZJZ','Z','ZSZ','SZ','SSZ'];
       const windDir = wxmLatest.wind_dir !== null ? dirs[Math.round(wxmLatest.wind_dir / 22.5) % 16] : '–';
 
-      wxmEl.className = 'wxm-hero';
+      wxmEl.className = 'wxm-hero weather-novoborsko';
       wxmEl.innerHTML = `
         <div class="wxm-hero-head">
           <div>
@@ -1196,7 +1221,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     } else {
       // WXM offline — diskrétní banner
-      wxmEl.className = 'wxm-hero';
+      wxmEl.className = 'wxm-hero weather-novoborsko';
       wxmEl.innerHTML = `
         <div class="wxm-hero-head">
           <div class="wxm-hero-title">📡 Lokální stanice WeatherXM</div>
@@ -1212,7 +1237,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     // ═══ ODDĚLOVAČ ══════════════════════════════════════════════════════════
     const divider = document.createElement('div');
-    divider.className = 'weather-divider';
+    divider.className = 'weather-divider weather-novoborsko';
     divider.textContent = 'Předpověď · Open-Meteo';
     container.appendChild(divider);
 
@@ -1224,7 +1249,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       const weather = wmoToDisplay(cur.weather_code);
 
       const heroEl = document.createElement('div');
-      heroEl.className = 'weather-hero';
+      heroEl.className = 'weather-hero weather-novoborsko';
       heroEl.innerHTML = `
         <div class="weather-hero-top">
           <div class="weather-hero-location">
@@ -1277,7 +1302,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // --- OSTATNÍ MĚSTA ---
     if (cityResults.length > 0) {
       const sectionHeader = document.createElement('div');
-      sectionHeader.className = 'weather-section-header';
+      sectionHeader.className = 'weather-section-header weather-cr';
       sectionHeader.innerHTML = `
         <div class="weather-section-title">Severní Čechy</div>
         <div class="weather-section-line"></div>
@@ -1285,7 +1310,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       container.appendChild(sectionHeader);
 
       const grid = document.createElement('div');
-      grid.className = 'weather-cities-grid';
+      grid.className = 'weather-cities-grid weather-cr';
 
       cityResults.forEach(result => {
         if (!result) return;
@@ -1340,32 +1365,83 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <span class="weather-source-badge">🌐 Open-Meteo API</span>
     `;
     container.appendChild(footer);
+    applyWeatherSubTab();
   }
 
   /* =========================================================
      TABS
      ========================================================= */
+  function renderSubTabs(tab) {
+    const nav = document.getElementById('subtabs-nav');
+    const tabs = SUB_TABS[tab];
+    if (!tabs) { nav.style.display = 'none'; return; }
+    nav.innerHTML = tabs.map((t, i) =>
+      `<button class="subtab-btn${i === 0 ? ' active' : ''}" onclick="switchSubTab('${t}', this)">${t}</button>`
+    ).join('');
+    nav.style.display = 'flex';
+    activeSubTab = tabs[0];
+  }
+
+  function switchSubTab(subTab, btn) {
+    activeSubTab = subTab;
+    document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (currentTab === 'news')    renderNews();
+    else if (currentTab === 'radio')   renderRadio();
+    else if (currentTab === 'weather') applyWeatherSubTab();
+    else if (currentTab === 'smart')   applySmartSubTab();
+  }
+
+  function applyWeatherSubTab() {
+    document.querySelectorAll('.weather-novoborsko').forEach(el =>
+      el.style.display = activeSubTab === 'Novoborsko' ? '' : 'none');
+    document.querySelectorAll('.weather-cr').forEach(el =>
+      el.style.display = activeSubTab === 'ČR' ? '' : 'none');
+  }
+
+  function applySmartSubTab() {
+    const sr  = document.getElementById('smartregion-container');
+    const nat = document.getElementById('nature-container');
+    if (activeSubTab === 'Okolní senzory') {
+      sr.style.display = 'flex'; sr.style.flexDirection = 'column';
+      nat.style.display = 'none';
+      if (!srLoaded) { srLoaded = true; initSmartRegion(); }
+      else if (srMap) setTimeout(() => srMap.invalidateSize(true), 100);
+    } else {
+      sr.style.display  = 'none';
+      nat.style.display = 'flex'; nat.style.flexDirection = 'column';
+      if (!window.natureLoaded) { window.natureLoaded = true; initNature(); }
+    }
+  }
+
   function switchTab(tab, btn) {
     currentTab = tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
-    document.getElementById('news-container').style.display        = tab === 'news'        ? 'flex'  : 'none';
-    document.getElementById('radio-container').style.display       = tab === 'radio'       ? 'grid'  : 'none';
-    document.getElementById('weather-container').style.display     = tab === 'weather'     ? 'flex'  : 'none';
-    document.getElementById('smartregion-container').style.display = tab === 'smartregion' ? 'flex'  : 'none';
-	const _nc = document.getElementById('nature-container');
-	_nc.style.display = tab === 'nature' ? 'flex' : 'none';
-	_nc.style.flexDirection = 'column';
+    // Skryj vše
+    document.getElementById('news-container').style.display    = 'none';
+    document.getElementById('radio-container').style.display   = 'none';
+    document.getElementById('weather-container').style.display = 'none';
+    document.getElementById('smartregion-container').style.display = 'none';
+    const _nc = document.getElementById('nature-container');
+    _nc.style.display = 'none';
 
-    if (tab === 'weather' && !weatherLoaded) { weatherLoaded = true; loadWeather(); }
-    if (tab === 'smartregion' && !srLoaded)  { srLoaded = true; initSmartRegion(); }
-    if (tab === 'smartregion') {
-      if (srMap) srMap.invalidateSize(true);
-    }
-	if (tab === 'nature' && !window.natureLoaded) { 
-        window.natureLoaded = true; 
-        initNature(); 
+    // Vyrenderuj L2 sub-tabs
+    renderSubTabs(tab);
+
+    if (tab === 'news') {
+      document.getElementById('news-container').style.display = 'flex';
+      renderNews();
+    } else if (tab === 'radio') {
+      document.getElementById('radio-container').style.display = 'grid';
+      renderRadio();
+    } else if (tab === 'weather') {
+      document.getElementById('weather-container').style.display = 'flex';
+      if (!weatherLoaded) { weatherLoaded = true; loadWeather(); }
+      else applyWeatherSubTab();
+    } else if (tab === 'smart') {
+      applySmartSubTab();
     }
   }
 
@@ -1373,9 +1449,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      REFRESH TLAČÍTKO — kontextové (funguje pro aktuální záložku)
      ========================================================= */
   function onRefreshClick() {
-    if (currentTab === 'weather')          { refreshWeather(); }
-    else if (currentTab === 'smartregion') { srRefresh(); }
-    else if (currentTab === 'nature')      { setNatureDays(natureDays, document.querySelector('[data-nature-days="'+natureDays+'"]')); }
+    if (currentTab === 'weather') { refreshWeather(); }
+    else if (currentTab === 'smart' && activeSubTab === 'Okolní senzory') { srRefresh(); }
+    else if (currentTab === 'smart' && activeSubTab === 'Lesy') { setNatureDays(natureDays, document.querySelector('[data-nature-days="'+natureDays+'"]')); }
     else { refreshData(true); }
   }
 
@@ -1431,7 +1507,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if (!radioContainer) return;
     radioContainer.innerHTML = '';
     const radioIconSvg = `<svg class="radio-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2" ry="2"></rect><circle cx="8" cy="14" r="2"></circle><path d="M22 7l-7-5-2 2"></path><circle cx="16" cy="14" r="1"></circle><circle cx="16" cy="16" r="1"></circle></svg>`;
-    appData.radio.forEach(stream => {
+    const filtered = appData.radio.filter(s => s.isPublic !== false && (!s.subTab || s.subTab === activeSubTab));
+    if (filtered.length === 0) {
+      radioContainer.innerHTML = '<div class="loading">Žádné stanice v kategorii <strong>' + activeSubTab + '</strong>.</div>';
+      return;
+    }
+    filtered.forEach(stream => {
       radioContainer.innerHTML += `
         <div class="radio-card">
           <div class="radio-left">
@@ -1471,7 +1552,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const mainContainer = document.getElementById('news-container');
     if (!mainContainer) return;
     mainContainer.innerHTML = '';
-    appData.news.forEach(feed => {
+    const newsFiltered = appData.news.filter(f => f.isPublic !== false && (!f.subTab || f.subTab === activeSubTab));
+    if (newsFiltered.length === 0) {
+      mainContainer.innerHTML = '<div class="loading">Žádné zprávy v kategorii <strong>' + activeSubTab + '</strong>.</div>';
+      return;
+    }
+    newsFiltered.forEach(feed => {
       const limit = feed.limit ? parseInt(feed.limit) : 10;
       const text = feed.rawText;
       let normalizedItems = [];
@@ -1531,6 +1617,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   const savedTheme = localStorage.getItem('pref-theme') || 'dark';
   setTheme(savedTheme);
 
+  // Vyrenderuj výchozí sub-tabs pro News (první záložka)
+  renderSubTabs('news');
   init();
   setInterval(() => refreshData(false), 300000);
   // Počasí se auto-refreshuje každých 30 minut, pokud je záložka aktivní
