@@ -1093,18 +1093,122 @@
     .tab-btn { font-size: 12px; }
   }
 
+
+  /* ═══════════════════════════════════════════════════
+     HEADER WIDGET — CLOCK / DATE / WEATHER / MOON
+     ═══════════════════════════════════════════════════ */
+  .hdr-centre {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+    padding: 0 20px;
+  }
+
+  .hdr-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .hdr-weather {
+    font-size: 13px;
+    letter-spacing: 0.3px;
+    cursor: default;
+  }
+
+  .hdr-moon {
+    font-size: 18px;
+    line-height: 1;
+    cursor: default;
+  }
+
+  .hdr-date {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* DIGITAL CLOCK — dominant */
+  .hdr-clock-wrap {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hdr-digital {
+    font-size: 36px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    transition: color 0.3s;
+  }
+
+  .hdr-digital:hover { color: var(--act); }
+
+  /* ANALOG CLOCK */
+  .hdr-analog {
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  /* Mobile — zmenšení */
+  @media (max-width: 600px) {
+    .hdr-digital { font-size: 24px; letter-spacing: 2px; }
+    .hdr-analog  { width: 52px !important; height: 52px !important; }
+    .hdr-date    { font-size: 9px; letter-spacing: 1px; }
+    .hdr-meta    { font-size: 11px; }
+    header       { padding: 12px 16px; }
+  }
+
   </style>
 </head>
 <body class="theme-dark">
 	<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MTWGJW5D"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <header>
-  <div style="font-weight: bold; letter-spacing: 1px; font-size: 28px;">Jouza <span style="color: var(--act)">Radio&News</span></div>
+  <!-- LOGO -->
+  <div style="font-weight:bold;letter-spacing:1px;font-size:28px;flex-shrink:0;">
+    Jouza <span style="color:var(--act)">Radio&News</span>
+  </div>
+
+  <!-- CENTRE WIDGET: CLOCK + DATE + WEATHER + MOON -->
+  <div class="hdr-centre">
+
+    <!-- WEATHER + MOON -->
+    <div class="hdr-meta">
+      <span class="hdr-weather" id="hdr-weather" title="Počasí Nový Bor">⏳</span>
+      <span class="hdr-moon"    id="hdr-moon"    title="Fáze měsíce"></span>
+    </div>
+
+    <!-- DATE row -->
+    <div class="hdr-date" id="hdr-date">—</div>
+
+    <!-- CLOCK — klik přepíná digital/analog -->
+    <div class="hdr-clock-wrap" id="hdr-clock-wrap" onclick="hdrToggleClock()" title="Přepnout digital / analog">
+      <!-- DIGITAL -->
+      <div class="hdr-digital" id="hdr-digital">00:00:00</div>
+      <!-- ANALOG -->
+      <canvas class="hdr-analog" id="hdr-analog" width="72" height="72" style="display:none;"></canvas>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: THEME PICKER -->
   <div class="theme-picker">
-    <div class="t-btn" data-theme="dark" style="background: #0f1115;" onclick="setTheme('dark')"></div>
-    <div class="t-btn" data-theme="white" style="background: #ffffff;" onclick="setTheme('white')"></div>
-    <div class="t-btn" data-theme="blue" style="background: #0a192f;" onclick="setTheme('blue')"></div>
-    <div class="t-btn" data-theme="red" style="background: #1a0a0a;" onclick="setTheme('red')"></div>
+    <div class="t-btn" data-theme="dark"  style="background:#0f1115;" onclick="setTheme('dark')"></div>
+    <div class="t-btn" data-theme="white" style="background:#ffffff;" onclick="setTheme('white')"></div>
+    <div class="t-btn" data-theme="blue"  style="background:#0a192f;" onclick="setTheme('blue')"></div>
+    <div class="t-btn" data-theme="red"   style="background:#1a0a0a;" onclick="setTheme('red')"></div>
   </div>
 </header>
 
@@ -2930,6 +3034,204 @@ function renderLunarCalendar() {
       }
     }
   });
+
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER WIDGET — HODINY / DATUM / POČASÍ / LUNÁR
+   ═══════════════════════════════════════════════════════════════ */
+(function initHeaderWidget() {
+
+  const WX_CACHE_KEY = 'hdr_wx_cache';
+  const WX_TTL       = 30 * 60 * 1000; // 30 minut
+  const NB_LAT       = 50.7573;
+  const NB_LON       = 14.5583;
+
+  const CZ_DAYS  = ['Neděle','Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota'];
+  const CZ_MONTHS= ['ledna','února','března','dubna','května','června',
+                    'července','srpna','září','října','listopadu','prosince'];
+
+  let hdrClockMode = localStorage.getItem('hdr-clock-mode') || 'digital';
+  let hdrAnimFrame = null;
+
+  // ── Přepínač digital / analog ──
+  window.hdrToggleClock = function() {
+    hdrClockMode = hdrClockMode === 'digital' ? 'analog' : 'digital';
+    localStorage.setItem('hdr-clock-mode', hdrClockMode);
+    document.getElementById('hdr-digital').style.display = hdrClockMode === 'digital' ? '' : 'none';
+    document.getElementById('hdr-analog').style.display  = hdrClockMode === 'analog'  ? '' : 'none';
+  };
+
+  // ── Inicializace zobrazení ──
+  (function applyClockMode() {
+    document.getElementById('hdr-digital').style.display = hdrClockMode === 'digital' ? '' : 'none';
+    document.getElementById('hdr-analog').style.display  = hdrClockMode === 'analog'  ? '' : 'none';
+  })();
+
+  // ── Ticker — každou sekundu ──
+  function hdrTick() {
+    const now = new Date();
+
+    // Datum
+    const dateEl = document.getElementById('hdr-date');
+    if (dateEl) {
+      dateEl.textContent =
+        CZ_DAYS[now.getDay()] + ' ' +
+        now.getDate() + '. ' +
+        CZ_MONTHS[now.getMonth()] + ' ' +
+        now.getFullYear();
+    }
+
+    // Digital
+    if (hdrClockMode === 'digital') {
+      const el = document.getElementById('hdr-digital');
+      if (el) {
+        const h = String(now.getHours()).padStart(2,'0');
+        const m = String(now.getMinutes()).padStart(2,'0');
+        const s = String(now.getSeconds()).padStart(2,'0');
+        el.textContent = h + ':' + m + ':' + s;
+      }
+    }
+
+    // Analog
+    if (hdrClockMode === 'analog') {
+      hdrDrawAnalog(now);
+    }
+  }
+
+  // ── Analog canvas renderer ──
+  function hdrDrawAnalog(now) {
+    const canvas = document.getElementById('hdr-analog');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height, R = W / 2 - 2;
+    const cx = W / 2, cy = H / 2;
+
+    // Čti CSS vars pro barvy
+    const style   = getComputedStyle(document.body);
+    const cBg     = style.getPropertyValue('--card').trim()   || '#161a1f';
+    const cBorder = style.getPropertyValue('--border').trim() || '#24292e';
+    const cText   = style.getPropertyValue('--text').trim()   || '#e0e0e0';
+    const cAct    = style.getPropertyValue('--act').trim()    || '#ffae00';
+    const cMuted  = style.getPropertyValue('--muted').trim()  || '#666';
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Ciferník
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.fillStyle = cBg;
+    ctx.fill();
+    ctx.strokeStyle = cBorder;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Číslice hodinek (4 quadrants)
+    ctx.fillStyle = cMuted;
+    ctx.font = `bold ${W * 0.13}px system-ui`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    [['12', cx, cy - R * 0.72],
+     ['3',  cx + R * 0.72, cy],
+     ['6',  cx, cy + R * 0.72],
+     ['9',  cx - R * 0.72, cy]
+    ].forEach(([t, x, y]) => ctx.fillText(t, x, y));
+
+    const h = now.getHours() % 12, m = now.getMinutes(), s = now.getSeconds();
+
+    // Funkce pro ručičku
+    function hand(angle, length, width, color) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(0, R * 0.12);
+      ctx.lineTo(0, -length);
+      ctx.strokeStyle = color;
+      ctx.lineWidth   = width;
+      ctx.lineCap     = 'round';
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Hodinová
+    hand((h + m / 60) / 12 * Math.PI * 2 - Math.PI / 2 + Math.PI / 2,
+         R * 0.52, W * 0.055, cText);
+    // Minutová
+    hand((m + s / 60) / 60 * Math.PI * 2 - Math.PI / 2 + Math.PI / 2,
+         R * 0.72, W * 0.038, cText);
+    // Vteřinová
+    hand(s / 60 * Math.PI * 2 - Math.PI / 2 + Math.PI / 2,
+         R * 0.80, W * 0.018, cAct);
+
+    // Středový bod
+    ctx.beginPath();
+    ctx.arc(cx, cy, W * 0.04, 0, Math.PI * 2);
+    ctx.fillStyle = cAct;
+    ctx.fill();
+  }
+
+  // ── Počasí — Open-Meteo NB, cache 30 min ──
+  async function hdrFetchWeather() {
+    const el = document.getElementById('hdr-weather');
+    if (!el) return;
+
+    // Cache check
+    try {
+      const raw = sessionStorage.getItem(WX_CACHE_KEY);
+      if (raw) {
+        const cached = JSON.parse(raw);
+        if (Date.now() - cached.ts < WX_TTL) {
+          el.textContent = cached.text;
+          el.title = cached.title;
+          return;
+        }
+      }
+    } catch(e) {}
+
+    try {
+      const params = new URLSearchParams({
+        latitude: NB_LAT, longitude: NB_LON,
+        current: 'temperature_2m,weather_code',
+        timezone: 'Europe/Prague'
+      });
+      const res  = await fetch('https://api.open-meteo.com/v1/forecast?' + params);
+      const data = await res.json();
+      const cur  = data.current;
+      // wmoToDisplay je definována ve weather sekci
+      const wx   = typeof wmoToDisplay === 'function'
+        ? wmoToDisplay(cur.weather_code)
+        : { icon: '🌡️', desc: '' };
+      const temp = Math.round(cur.temperature_2m);
+      const text  = wx.icon + ' ' + temp + '°C';
+      const title = 'Nový Bor · ' + wx.desc + ' · ' + temp + '°C';
+      el.textContent = text;
+      el.title = title;
+      sessionStorage.setItem(WX_CACHE_KEY, JSON.stringify({ ts: Date.now(), text, title }));
+    } catch(e) {
+      el.textContent = '🌡️ —';
+    }
+  }
+
+  // ── Lunár emoji ──
+  function hdrUpdateMoon() {
+    const el = document.getElementById('hdr-moon');
+    if (!el) return;
+    if (typeof calGetMoonPhase === 'function') {
+      const moon = calGetMoonPhase(new Date());
+      el.textContent = moon.icon;
+      el.title = moon.name;
+    }
+  }
+
+  // ── Start ──
+  hdrTick();
+  hdrUpdateMoon();
+  hdrFetchWeather();
+
+  setInterval(hdrTick, 1000);
+  setInterval(hdrFetchWeather, WX_TTL);
+  setInterval(hdrUpdateMoon, 60000);
 
 })();
 
