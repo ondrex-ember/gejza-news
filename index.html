@@ -30,6 +30,8 @@
 <meta name="twitter:description" content="Zprávy, online rádio a lunární kalendář pro Novoborsko. Fáze měsíce, slovanské svátky, astronomické události.">
 <meta name="twitter:image" content="https://newsandradio.cz/og-image.jpg">
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <script type="application/ld+json">
@@ -184,7 +186,7 @@
     /* 2. LAYOUT & HEADER */
     header {
       padding: 20px 40px;
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex; justify-content: space-between; align-items: flex-start;
     }
 
     /* GLOBAL RADIO PLAYER */
@@ -1134,7 +1136,7 @@
     color: var(--muted);
   }
 
-  /* DIGITAL CLOCK — dominant */
+  /* DIGITAL CLOCK — Station style */
   .hdr-clock-wrap {
     cursor: pointer;
     user-select: none;
@@ -1144,16 +1146,32 @@
   }
 
   .hdr-digital {
-    font-size: 36px;
-    font-weight: 900;
-    letter-spacing: 3px;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 38px;
+    font-weight: 400;
+    letter-spacing: 4px;
     color: var(--text);
     font-variant-numeric: tabular-nums;
     line-height: 1;
-    transition: color 0.3s;
+    transition: color 0.3s, text-shadow 0.3s;
+    text-shadow:
+      0 0 8px rgba(255,255,255,0.15),
+      0 0 20px rgba(255,255,255,0.08);
   }
 
-  .hdr-digital:hover { color: var(--act); }
+  .hdr-digital .hdr-sec {
+    font-size: 22px;
+    opacity: 0.45;
+    letter-spacing: 2px;
+    vertical-align: middle;
+  }
+
+  .hdr-digital:hover {
+    color: var(--act);
+    text-shadow:
+      0 0 10px color-mix(in srgb, var(--act) 60%, transparent),
+      0 0 30px color-mix(in srgb, var(--act) 25%, transparent);
+  }
 
   /* ANALOG CLOCK */
   .hdr-analog {
@@ -1163,8 +1181,9 @@
 
   /* Mobile — zmenšení */
   @media (max-width: 600px) {
-    .hdr-digital { font-size: 24px; letter-spacing: 2px; }
-    .hdr-analog  { width: 52px !important; height: 52px !important; }
+    .hdr-digital { font-size: 26px; letter-spacing: 2px; }
+    .hdr-digital .hdr-sec { font-size: 16px; }
+    .hdr-analog  { width: 80px !important; height: 80px !important; }
     .hdr-date    { font-size: 9px; letter-spacing: 1px; }
     .hdr-meta    { font-size: 11px; }
     header       { padding: 12px 16px; }
@@ -1176,29 +1195,31 @@
 	<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MTWGJW5D"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <header>
-  <!-- LOGO -->
-  <div style="font-weight:bold;letter-spacing:1px;font-size:28px;flex-shrink:0;">
-    Jouza <span style="color:var(--act)">Radio&News</span>
+  <!-- LOGO + ABOUT + META -->
+  <div style="display:flex;flex-direction:column;align-items:flex-start;flex-shrink:0;gap:2px;">
+    <a href="o-webu.html" style="font-size:10px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:var(--muted);text-decoration:none;opacity:0.7;transition:opacity 0.2s,color 0.2s;padding-left:2px;" onmouseover="this.style.opacity='1';this.style.color='var(--act)'" onmouseout="this.style.opacity='0.7';this.style.color='var(--muted)'">· · · About</a>
+    <div style="font-weight:bold;letter-spacing:1px;font-size:28px;">
+      Jouza <span style="color:var(--act)">Radio&News</span>
+    </div>
+    <!-- WEATHER + DATE pod titulem -->
+    <div style="display:flex;align-items:center;gap:8px;margin-top:4px;padding-left:2px;">
+      <div class="hdr-meta" style="margin:0;">
+        <span class="hdr-weather" id="hdr-weather" title="Počasí Nový Bor">⏳</span>
+        <span class="hdr-moon"    id="hdr-moon"    title="Fáze měsíce"></span>
+      </div>
+      <div class="hdr-date" id="hdr-date" style="color:var(--muted);opacity:0.75;">—</div>
+    </div>
   </div>
 
-  <!-- CENTRE WIDGET: CLOCK + DATE + WEATHER + MOON -->
+  <!-- CENTRE WIDGET: CLOCK ONLY -->
   <div class="hdr-centre">
-
-    <!-- WEATHER + MOON -->
-    <div class="hdr-meta">
-      <span class="hdr-weather" id="hdr-weather" title="Počasí Nový Bor">⏳</span>
-      <span class="hdr-moon"    id="hdr-moon"    title="Fáze měsíce"></span>
-    </div>
-
-    <!-- DATE row -->
-    <div class="hdr-date" id="hdr-date">—</div>
 
     <!-- CLOCK — klik přepíná digital/analog -->
     <div class="hdr-clock-wrap" id="hdr-clock-wrap" onclick="hdrToggleClock()" title="Přepnout digital / analog">
       <!-- DIGITAL -->
       <div class="hdr-digital" id="hdr-digital">00:00:00</div>
       <!-- ANALOG -->
-      <canvas class="hdr-analog" id="hdr-analog" width="72" height="72" style="display:none;"></canvas>
+      <canvas class="hdr-analog" id="hdr-analog" width="130" height="130" style="display:none;"></canvas>
     </div>
 
   </div>
@@ -3089,7 +3110,7 @@ function renderLunarCalendar() {
         const h = String(now.getHours()).padStart(2,'0');
         const m = String(now.getMinutes()).padStart(2,'0');
         const s = String(now.getSeconds()).padStart(2,'0');
-        el.textContent = h + ':' + m + ':' + s;
+        el.innerHTML = h + ':' + m + '<span class="hdr-sec">:' + s + '</span>';
       }
     }
 
@@ -3104,71 +3125,112 @@ function renderLunarCalendar() {
     const canvas = document.getElementById('hdr-analog');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const W = canvas.width, H = canvas.height, R = W / 2 - 2;
+    const W = canvas.width, H = canvas.height;
     const cx = W / 2, cy = H / 2;
+    const R = W / 2 - 3;
 
-    // Čti CSS vars pro barvy
-    const style   = getComputedStyle(document.body);
-    const cBg     = style.getPropertyValue('--card').trim()   || '#161a1f';
-    const cBorder = style.getPropertyValue('--border').trim() || '#24292e';
-    const cText   = style.getPropertyValue('--text').trim()   || '#e0e0e0';
-    const cAct    = style.getPropertyValue('--act').trim()    || '#ffae00';
-    const cMuted  = style.getPropertyValue('--muted').trim()  || '#666';
+    // ── Theme-aware colors ──
+    const cs      = getComputedStyle(document.body);
+    const cFace   = cs.getPropertyValue('--card').trim()   || '#161a1f';
+    const cBorder = cs.getPropertyValue('--border').trim() || '#2a2a2a';
+    const cText   = cs.getPropertyValue('--text').trim()   || '#e0e0e0';
+    // derive tick/numeral alphas from text color
+    const isDark  = document.body.className.includes('white') === false &&
+                    !document.body.className.includes('white');
+    const tickMajor  = cText + (isDark ? '' : '');  // use rgba below
+    const numFull    = cText;
+    const numFaded   = cText;
 
     ctx.clearRect(0, 0, W, H);
 
-    // Ciferník
+    // ── Face ──
     ctx.beginPath();
     ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.fillStyle = cBg;
+    ctx.fillStyle = cFace;
     ctx.fill();
     ctx.strokeStyle = cBorder;
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // Číslice hodinek (4 quadrants)
-    ctx.fillStyle = cMuted;
-    ctx.font = `bold ${W * 0.13}px system-ui`;
+    // ── Tick marks ──
+    for (let i = 0; i < 60; i++) {
+      const angle = (i / 60) * Math.PI * 2 - Math.PI / 2;
+      const isMajor = i % 5 === 0;
+      const outer = R;
+      const inner = isMajor ? R - R * 0.10 : R - R * 0.05;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
+      ctx.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer);
+      ctx.strokeStyle = isMajor ? cText : cBorder;
+      ctx.lineWidth = isMajor ? 1.5 : 0.8;
+      ctx.stroke();
+    }
+
+    // ── Roman numerals at 12, 3, 6, 9 ──
+    const romans = [['XII', 0], ['III', 3], ['VI', 6], ['IX', 9]];
+    ctx.fillStyle = cText;
+    ctx.font = `${W * 0.095}px 'Share Tech Mono', 'Courier New', monospace`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    [['12', cx, cy - R * 0.72],
-     ['3',  cx + R * 0.72, cy],
-     ['6',  cx, cy + R * 0.72],
-     ['9',  cx - R * 0.72, cy]
-    ].forEach(([t, x, y]) => ctx.fillText(t, x, y));
+    romans.forEach(([label, hour]) => {
+      const angle = (hour / 12) * Math.PI * 2 - Math.PI / 2;
+      const nr = R * 0.70;
+      ctx.fillText(label, cx + Math.cos(angle) * nr, cy + Math.sin(angle) * nr);
+    });
+
+    // ── Smaller romans at I,II,IV,V,VII,VIII,X,XI ──
+    const smallRomans = [['I',1],['II',2],['IV',4],['V',5],['VII',7],['VIII',8],['X',10],['XI',11]];
+    ctx.fillStyle = cBorder;
+    ctx.font = `${W * 0.072}px 'Share Tech Mono', 'Courier New', monospace`;
+    smallRomans.forEach(([label, hour]) => {
+      const angle = (hour / 12) * Math.PI * 2 - Math.PI / 2;
+      const nr = R * 0.70;
+      ctx.fillText(label, cx + Math.cos(angle) * nr, cy + Math.sin(angle) * nr);
+    });
 
     const h = now.getHours() % 12, m = now.getMinutes(), s = now.getSeconds();
+    const ms = now.getMilliseconds();
 
-    // Funkce pro ručičku
-    function hand(angle, length, width, color) {
+    // ── Hand renderer ──
+    function hand(angleDeg, length, tailLen, width, color, hasShadow) {
+      const angle = angleDeg - Math.PI / 2;
       ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(angle);
+      if (hasShadow) {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 6;
+      }
       ctx.beginPath();
-      ctx.moveTo(0, R * 0.12);
-      ctx.lineTo(0, -length);
+      ctx.moveTo(cx + Math.cos(angle + Math.PI) * tailLen,
+                 cy + Math.sin(angle + Math.PI) * tailLen);
+      ctx.lineTo(cx + Math.cos(angle) * length,
+                 cy + Math.sin(angle) * length);
       ctx.strokeStyle = color;
-      ctx.lineWidth   = width;
-      ctx.lineCap     = 'round';
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
       ctx.stroke();
       ctx.restore();
     }
 
-    // Hodinová
-    hand((h + m / 60) / 12 * Math.PI * 2 - Math.PI / 2 + Math.PI / 2,
-         R * 0.52, W * 0.055, cText);
-    // Minutová
-    hand((m + s / 60) / 60 * Math.PI * 2 - Math.PI / 2 + Math.PI / 2,
-         R * 0.72, W * 0.038, cText);
-    // Vteřinová
-    hand(s / 60 * Math.PI * 2 - Math.PI / 2 + Math.PI / 2,
-         R * 0.80, W * 0.018, cAct);
+    // Hour hand — thick, short
+    const hAngle = ((h + m / 60) / 12) * Math.PI * 2;
+    hand(hAngle, R * 0.50, R * 0.10, W * 0.048, cText, false);
 
-    // Středový bod
+    // Minute hand — thinner, longer
+    const mAngle = ((m + s / 60) / 60) * Math.PI * 2;
+    hand(mAngle, R * 0.74, R * 0.12, W * 0.030, cText, false);
+
+    // Second hand — thin, yellow/gold, with tail, smooth sweep (Station signature — always gold)
+    const sAngle = ((s + ms / 1000) / 60) * Math.PI * 2;
+    hand(sAngle, R * 0.82, R * 0.22, W * 0.016, '#f0c040', true);
+
+    // ── Centre dot: theme border ring, face fill ──
     ctx.beginPath();
-    ctx.arc(cx, cy, W * 0.04, 0, Math.PI * 2);
-    ctx.fillStyle = cAct;
+    ctx.arc(cx, cy, W * 0.038, 0, Math.PI * 2);
+    ctx.fillStyle = cFace;
     ctx.fill();
+    ctx.strokeStyle = cText;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
   }
 
   // ── Počasí — Open-Meteo NB, cache 30 min ──
