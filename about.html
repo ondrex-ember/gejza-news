@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>O aplikaci · Jouza Radio & News</title>
+<meta name="description" content="O aplikaci Jouza Radio & News — autorství, popis, changelog verzí.">
+<link rel="canonical" href="https://newsandradio.cz/about">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<meta name="robots" content="noindex, follow">
+
+<style>
+  /* ── TÉMATA (identická s index.html) ─────────────────── */
+  :root { transition: all 0.3s ease; }
+  body.theme-dark  { --bg:#0f1115; --card:#161a1f; --text:#e0e0e0; --muted:#666; --act:#ffae00; --border:#24292e; --danger:#ff4d4d; }
+  body.theme-white { --bg:#f5f5f7; --card:#ffffff; --text:#1d1d1f; --muted:#86868b; --act:#0071e3; --border:#d2d2d7; --danger:#e02424; }
+  body.theme-blue  { --bg:#0a192f; --card:#112240; --text:#ccd6f6; --muted:#8892b0; --act:#64ffda; --border:#233554; --danger:#ff4d4d; }
+  body.theme-red   { --bg:#1a0a0a; --card:#2a0f0f; --text:#f5e6e6; --muted:#a07a7a; --act:#ff4d4d; --border:#3d1414; --danger:#ff0000; }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ──────────────────────────────────────────── */
+  header {
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo { font-weight: bold; letter-spacing: 1px; font-size: 22px; text-decoration: none; color: var(--text); }
+  .logo span { color: var(--act); }
+
+  .theme-picker { display: flex; gap: 8px; }
+  .t-btn { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); cursor: pointer; transition: transform .2s; }
+  .t-btn.active { border-color: var(--act); transform: scale(1.2); }
+
+  /* ── BREADCRUMB ─────────────────────────────────────── */
+  .breadcrumb {
+    padding: 14px 40px;
+    font-size: 12px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .breadcrumb a { color: var(--act); text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb-sep { opacity: .4; }
+
+  /* ── MAIN LAYOUT ─────────────────────────────────────── */
+  main {
+    max-width: 860px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 50px 20px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+  }
+
+  /* ── PAGE HERO ───────────────────────────────────────── */
+  .page-hero {
+    display: flex;
+    align-items: flex-start;
+    gap: 30px;
+    flex-wrap: wrap;
+  }
+
+  .hero-icon-wrap {
+    flex-shrink: 0;
+    width: 80px; height: 80px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 38px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-icon-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(255,174,0,.15) 0%, transparent 70%);
+  }
+  body.theme-blue .hero-icon-wrap::before { background: radial-gradient(circle at 30% 30%, rgba(100,255,218,.15) 0%, transparent 70%); }
+  body.theme-red  .hero-icon-wrap::before { background: radial-gradient(circle at 30% 30%, rgba(255,77,77,.15) 0%, transparent 70%); }
+
+  .hero-text {}
+  .hero-eyebrow {
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--act);
+    margin-bottom: 8px;
+  }
+  .hero-title {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+  .hero-sub {
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 520px;
+  }
+
+  /* ── SECTION HEADER (reused) ─────────────────────────── */
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .section-head-title {
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .section-head-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── DESCRIPTION CARD ────────────────────────────────── */
+  .desc-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 30px;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.75;
+    position: relative;
+    overflow: hidden;
+  }
+  .desc-card::after {
+    content: '';
+    position: absolute;
+    bottom: -30px; right: -30px;
+    width: 160px; height: 160px;
+    background: radial-gradient(circle, rgba(255,174,0,.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  body.theme-blue .desc-card::after { background: radial-gradient(circle, rgba(100,255,218,.06) 0%, transparent 70%); }
+  body.theme-red  .desc-card::after { background: radial-gradient(circle, rgba(255,77,77,.06) 0%, transparent 70%); }
+
+  .desc-card p + p { margin-top: 14px; }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .tag {
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: transparent;
+  }
+  .tag.act {
+    border-color: var(--act);
+    color: var(--act);
+    background: rgba(255,174,0,.06);
+  }
+  body.theme-blue .tag.act { background: rgba(100,255,218,.06); }
+  body.theme-red  .tag.act { background: rgba(255,77,77,.06); }
+
+  /* ── AUTHOR GRID ──────────────────────────────────────── */
+  .author-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .author-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    transition: border-color .2s, transform .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .author-card:hover {
+    border-color: var(--act);
+    transform: translateY(-2px);
+  }
+
+  .author-card.primary {
+    border-color: var(--act);
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .author-avatar {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--act) 0%, rgba(255,174,0,.3) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+  body.theme-blue .author-avatar { background: linear-gradient(135deg, #64ffda 0%, rgba(100,255,218,.3) 100%); }
+  body.theme-red  .author-avatar { background: linear-gradient(135deg, #ff4d4d 0%, rgba(255,77,77,.3) 100%); }
+
+  .author-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .author-role {
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--act);
+    margin-bottom: 8px;
+  }
+  .author-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .llm-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .llm-name {
+    font-size: 15px;
+    font-weight: bold;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .llm-role {
+    font-size: 11px;
+    color: var(--act);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .llm-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* Glow effect on primary card */
+  .author-card.primary::before {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(255,174,0,.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  body.theme-blue .author-card.primary::before { background: radial-gradient(circle, rgba(100,255,218,.1) 0%, transparent 70%); }
+  body.theme-red  .author-card.primary::before { background: radial-gradient(circle, rgba(255,77,77,.1) 0%, transparent 70%); }
+
+  /* ── CHANGELOG ────────────────────────────────────────── */
+  .changelog {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .changelog-entry {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 0 24px;
+    position: relative;
+  }
+
+  /* vertical line */
+  .changelog-entry:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 119px;
+    top: 30px;
+    bottom: -1px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .changelog-meta {
+    padding: 18px 0;
+    text-align: right;
+    position: relative;
+  }
+
+  .changelog-dot {
+    position: absolute;
+    right: -8px;
+    top: 22px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--border);
+    border: 2px solid var(--bg);
+    transition: background .2s;
+  }
+
+  .changelog-entry:hover .changelog-dot {
+    background: var(--act);
+  }
+
+  .changelog-entry.latest .changelog-dot {
+    background: var(--act);
+    box-shadow: 0 0 0 3px rgba(255,174,0,.2);
+  }
+  body.theme-blue .changelog-entry.latest .changelog-dot { box-shadow: 0 0 0 3px rgba(100,255,218,.2); }
+  body.theme-red  .changelog-entry.latest .changelog-dot { box-shadow: 0 0 0 3px rgba(255,77,77,.2); }
+
+  .changelog-version {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    letter-spacing: -.5px;
+  }
+  .changelog-entry.latest .changelog-version { color: var(--act); }
+
+  .changelog-date {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .changelog-body {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin: 10px 0 16px;
+    transition: border-color .2s;
+  }
+
+  .changelog-entry:hover .changelog-body {
+    border-color: rgba(255,174,0,.3);
+  }
+  body.theme-blue .changelog-entry:hover .changelog-body { border-color: rgba(100,255,218,.3); }
+  body.theme-red  .changelog-entry:hover .changelog-body { border-color: rgba(255,77,77,.3); }
+
+  .changelog-entry.latest .changelog-body {
+    border-color: rgba(255,174,0,.25);
+  }
+  body.theme-blue .changelog-entry.latest .changelog-body { border-color: rgba(100,255,218,.25); }
+  body.theme-red  .changelog-entry.latest .changelog-body { border-color: rgba(255,77,77,.25); }
+
+  .changelog-title {
+    font-size: 15px;
+    font-weight: bold;
+    color: var(--text);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .cl-badge {
+    font-size: 9px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .cl-badge.new    { background: rgba(89,214,141,.15); color: #59d68d; border: 1px solid rgba(89,214,141,.3); }
+  .cl-badge.fix    { background: rgba(255,193,7,.12);  color: #ffc107; border: 1px solid rgba(255,193,7,.3); }
+  .cl-badge.major  { background: rgba(255,77,77,.12);  color: #ff6b6b; border: 1px solid rgba(255,77,77,.3); }
+  .cl-badge.design { background: rgba(77,171,247,.12); color: #4dabf7; border: 1px solid rgba(77,171,247,.3); }
+
+  .cl-items {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .cl-items li {
+    font-size: 13px;
+    color: var(--muted);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .cl-items li::before {
+    content: '·';
+    position: absolute;
+    left: 4px;
+    color: var(--act);
+    font-weight: bold;
+  }
+  .cl-items li strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* ── STATS ROW ───────────────────────────────────────── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .stat-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 16px;
+    text-align: center;
+    transition: border-color .2s, transform .2s;
+  }
+  .stat-box:hover {
+    border-color: var(--act);
+    transform: translateY(-2px);
+  }
+  .stat-num {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--act);
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-lbl {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ── TECH STACK ──────────────────────────────────────── */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .tech-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    transition: border-color .15s;
+  }
+  .tech-item:hover { border-color: var(--act); }
+  .tech-icon { font-size: 22px; flex-shrink: 0; }
+  .tech-name { font-weight: bold; color: var(--text); margin-bottom: 2px; font-size: 13px; }
+  .tech-detail { font-size: 11px; color: var(--muted); }
+
+  /* ── FOOTER ─────────────────────────────────────────── */
+  .site-footer {
+    margin-top: auto;
+    padding: 40px 20px 30px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    text-align: center;
+  }
+  .footer-links {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    align-items: center; gap: 12px; margin-bottom: 15px;
+  }
+  .footer-links a {
+    color: var(--muted); text-decoration: none; font-size: 11px;
+    font-weight: bold; text-transform: uppercase; letter-spacing: 1px; transition: all .3s;
+  }
+  .footer-links .sep { color: var(--border); font-size: 10px; user-select: none; }
+  .footer-links a:hover {
+    color: #fff;
+    text-shadow: 0 0 5px var(--act), 0 0 15px var(--act), 0 0 30px var(--danger);
+  }
+  .footer-copy { font-size: 10px; color: var(--muted); opacity: .5; letter-spacing: .5px; }
+
+  /* ── RESPONSIVE ─────────────────────────────────────── */
+  @media (max-width: 680px) {
+    header { padding: 16px 20px; }
+    .breadcrumb { padding: 12px 20px; }
+    .hero-title { font-size: 26px; }
+    .author-grid { grid-template-columns: 1fr; }
+    .author-card.primary { grid-column: 1; grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .tech-grid { grid-template-columns: 1fr 1fr; }
+    .changelog-entry { grid-template-columns: 100px 1fr; }
+    .changelog-entry::before { left: 89px; }
+    .changelog-dot { right: -8px; }
+  }
+
+  @media (max-width: 420px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .tech-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body class="theme-dark">
+
+<header>
+  <a href="/" class="logo">Jouza <span>Radio&News</span></a>
+  <div class="theme-picker">
+    <div class="t-btn" data-theme="dark"  style="background:#0f1115;" onclick="setTheme('dark')"></div>
+    <div class="t-btn" data-theme="white" style="background:#ffffff;" onclick="setTheme('white')"></div>
+    <div class="t-btn" data-theme="blue"  style="background:#0a192f;" onclick="setTheme('blue')"></div>
+    <div class="t-btn" data-theme="red"   style="background:#1a0a0a;" onclick="setTheme('red')"></div>
+  </div>
+</header>
+
+<div class="breadcrumb">
+  <a href="/">← Zpět</a>
+  <span class="breadcrumb-sep">/</span>
+  <span>O aplikaci</span>
+</div>
+
+<main>
+
+  <!-- ── PAGE HERO ─────────────────────────────────────── -->
+  <div class="page-hero">
+    <div class="hero-icon-wrap">📻</div>
+    <div class="hero-text">
+      <div class="hero-eyebrow">Dokumentace projektu</div>
+      <div class="hero-title">O aplikaci</div>
+      <div class="hero-sub">Jouza Radio&amp;News je otevřená a dynamicky se vyvíjející lokální platforma agregující zprávy, rádiové streamy, počasí a smart data regionu Nový Bor a širší okolí. Je vyvíjena na vlastní náklady a s přihlédnutím k potřebám obyvatel regionu.</div>
+    </div>
+  </div>
+
+  <!-- ── STATS ─────────────────────────────────────────── -->
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-num">2.8</div>
+      <div class="stat-lbl">Aktuální verze</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">5</div>
+      <div class="stat-lbl">Záložek / modulů</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">4</div>
+      <div class="stat-lbl">Barevná témata</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">∞</div>
+      <div class="stat-lbl">Kávy při vývoji</div>
+    </div>
+  </div>
+
+  <!-- ── POPIS ──────────────────────────────────────────── -->
+  <section>
+    <div class="section-head">
+      <div class="section-head-title">Popis aplikace</div>
+      <div class="section-head-line"></div>
+    </div>
+    <div class="desc-card">
+      <p>
+        <strong>Jouza Radio&amp;News</strong> je nezávislý agregátor zpráv a živých rádiových streamů zaměřený na Severočeský region — konkrétně Liberecký a Ústecký kraj. Cílem je nabídnout přehledné, reklamou nezatížené rozhraní pro každodenní přísun informací a hudby.
+      </p>
+      <p>
+        Aplikace funguje jako jednostránkový klient (SPA) nasazený přes <strong>Vercel</strong> a verzovaný na <strong>GitHubu</strong>. Data zpráv jsou stahována z live JSON feedu, počasí obstarává <strong>Open-Meteo API</strong> doplněné osobní meteorologickou stanicí v Novém Boru. Sekce Smart Region agreguje data ze senzorové sítě — ovzduší, voda, půda, radiace a silniční provoz I/9.
+      </p>
+      <p>
+        Záložka <strong>Příroda</strong> přináší data lesnického monitoringu z DendroNet — les Jetřichovice a les Ralsko. Aplikace nevyužívá žádné cookies třetích stran ani placenou inzerci.
+      </p>
+      <div class="tag-list">
+        <span class="tag act">SPA</span>
+        <span class="tag act">Open-Source dat</span>
+        <span class="tag act">Hyperlokalita</span>
+        <span class="tag">Vercel</span>
+        <span class="tag">GitHub</span>
+        <span class="tag">Open-Meteo</span>
+        <span class="tag">DendroNet</span>
+        <span class="tag">NBSense</span>
+        <span class="tag">bez reklam</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── AUTORSTVÍ ──────────────────────────────────────── -->
+  <section>
+    <div class="section-head">
+      <div class="section-head-title">Autorství</div>
+      <div class="section-head-line"></div>
+    </div>
+    <div class="author-grid">
+
+      <!-- Ondrex — primární autor -->
+      <div class="author-card primary">
+        <div class="author-avatar">🧑‍💻</div>
+        <div>
+          <div class="author-name">Ondrex</div>
+          <div class="author-role">Autor · Architekt · Správce</div>
+          <div class="author-desc">
+            Tvůrce projektu, zodpovědný za celkovou architekturu, datové zdroje, nasazení, vývoj a provoz systému.
+          </div>
+          <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border); font-size:12px; color:var(--muted); display:flex; align-items:center; gap:8px;">
+            <span style="font-size:16px;">🤖</span>
+            <span>Programovací asistence: <strong style="color:var(--text);">Claude (Anthropic)</strong> — pair-programming partner pro frontend, architektura, SEO a datové pipeline.</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── TECH STACK ─────────────────────────────────────── -->
+  <section>
+    <div class="section-head">
+      <div class="section-head-title">Technologický stack</div>
+      <div class="section-head-line"></div>
+    </div>
+    <div class="tech-grid">
+      <div class="tech-item">
+        <span class="tech-icon">▲</span>
+        <div><div class="tech-name">Vercel</div><div class="tech-detail">Hosting &amp; deployment (CD)</div></div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">🐙</span>
+        <div><div class="tech-name">GitHub</div><div class="tech-detail">Verzování, CI pipeline</div></div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">🌤️</span>
+        <div><div class="tech-name">Open-Meteo</div><div class="tech-detail">Počasí — free, bez API klíče</div></div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">🗺️</span>
+        <div><div class="tech-name">Leaflet.js</div><div class="tech-detail">Interaktivní mapy senzorů</div></div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">📊</span>
+        <div><div class="tech-name">Chart.js</div><div class="tech-detail">Grafy měření Smart Region</div></div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">⚡</span>
+        <div><div class="tech-name">Google Apps Script</div><div class="tech-detail">NBSense backend API (GAS)</div></div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">📡</span>
+        <div><div class="tech-name">Vlastní stanice</div><div class="tech-detail">Meteo JSON feed — Nový Bor</div></div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">🌲</span>
+        <div><div class="tech-name">DendroNet</div><div class="tech-detail">Lesnická senzorová data CZ</div></div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">📰</span>
+        <div><div class="tech-name">RSS / JSON feedy</div><div class="tech-detail">Zprávy — live agregace</div></div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">🚗</span>
+        <div><div class="tech-name">Rychlost I/9</div><div class="tech-detail">Silniční provoz — live km/h, dopravniinfo.cz</div></div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">☢️</span>
+        <div><div class="tech-name">Radiace (µSv/h)</div><div class="tech-detail">Geiger senzor — Nový Bor</div></div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">💧</span>
+        <div><div class="tech-name">Průtok Šporka</div><div class="tech-detail">Průtok m³/s — říční stanice</div></div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">📏</span>
+        <div><div class="tech-name">Hladina Svor</div><div class="tech-detail">Výška hladiny cm — Boberský p.</div></div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-icon">🌱</span>
+        <div><div class="tech-name">Vlhkost půdy</div><div class="tech-detail">Park Nový Bor — SWC senzor</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CHANGELOG ─────────────────────────────────────── -->
+  <section>
+    <div class="section-head">
+      <div class="section-head-title">Changelog verzí</div>
+      <div class="section-head-line"></div>
+    </div>
+
+    <div class="changelog">
+
+      <!-- v2.8 -->
+      <div class="changelog-entry latest">
+        <div class="changelog-meta">
+          <div class="changelog-version">v2.8</div>
+          <div class="changelog-date">30. 3. 2026</div>
+          <div class="changelog-dot"></div>
+        </div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            Lunární kalendář · Day info v hlavičce
+            <span class="cl-badge major">Major</span>
+          </div>
+          <ul class="cl-items">
+            <li><strong>Záložka „Kalendář"</strong> — plně česky lokalizovaný lunární kalendář s fázemi měsíce, slovanskými svátky a astronomickými událostmi</li>
+            <li>Fázová lišta (phase bar) s aktuálním dnem cyklu, iluminací a jménem fáze</li>
+            <li>Modifikátory energie (×1.0 – ×2.5) pro speciální dny (Čarodějnice, Slunovrat, Samhain…)</li>
+            <li>Zobrazení aktuální fáze měsíce + počasí <strong>v centru hlavičky aplikace</strong> (hdr-moon, hdr-weather)</li>
+            <li>Hodiny v hlavičce — digitální i analogové (přepínání klikem), datum s denním názvem</li>
+            <li>Auto-refresh při přechodu přes půlnoc + <code>visibilitychange</code> listener</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- v2.7 -->
+      <div class="changelog-entry">
+        <div class="changelog-meta">
+          <div class="changelog-version">v2.7</div>
+          <div class="changelog-date">25. 3. 2026</div>
+          <div class="changelog-dot"></div>
+        </div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            Subsekce · Přepracování struktury · Opravy
+            <span class="cl-badge design">Design</span>
+            <span class="cl-badge fix">Opravy</span>
+          </div>
+          <ul class="cl-items">
+            <li>Záložky Zprávy, Rádio a Počasí rozděleny do <strong>sub-záložek</strong> (Svět / ČR / Novoborsko)</li>
+            <li>Smart Region rozdělen na sub-záložky <strong>Okolní senzory</strong> a <strong>Lesy</strong></li>
+            <li>Dynamické generování subtab navigace dle aktivní L1 záložky</li>
+            <li>Oprava lazy-load pro záložku Příroda při přepínání subsekcí</li>
+            <li>Ladění výkonnostních a vizuálních detailů — spacing, barvy, responzivita</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- v2.6 -->
+      <div class="changelog-entry">
+        <div class="changelog-meta">
+          <div class="changelog-version">v2.6</div>
+          <div class="changelog-date">20. 3. 2026</div>
+          <div class="changelog-dot"></div>
+        </div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            Záložka Příroda · DendroNet live
+            <span class="cl-badge major">Major</span>
+          </div>
+          <ul class="cl-items">
+            <li><strong>Nová záložka „Příroda"</strong> — lesnický monitoring Jetřichovice &amp; Ralsko</li>
+            <li>Graf teploty vzduchu, teploty a vlhkosti půdy (SWC), tlaku půdy (SWP)</li>
+            <li>Graf PAR (fotosynteticky aktivní záření) + vlhkost vzduchu</li>
+            <li>Graf vodního deficitu stromu (TWD) — indikátor stresu lesního porostu</li>
+            <li>Volitelné časové období: 30 / 90 / 180 / 365 dní</li>
+            <li>GAS endpoint <code>format=nature</code> pro DendroNet data</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- v2.5 -->
+      <div class="changelog-entry">
+        <div class="changelog-meta">
+          <div class="changelog-version">v2.5</div>
+          <div class="changelog-date">15. 3. 2026</div>
+          <div class="changelog-dot"></div>
+        </div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            Smart Region — Doprava &amp; Mapa
+            <span class="cl-badge new">Nové</span>
+          </div>
+          <ul class="cl-items">
+            <li><strong>Live dopravní data I/9</strong> přes api.dopravniinfo.cz — rychlost, zdržení, směr</li>
+            <li>Interaktivní <strong>mapa senzorů</strong> (Leaflet) s barevnými markery dle typu senzoru</li>
+            <li>Oprava souřadnic v GAS exportu — správné mapování sloupců pro lat/lon/id</li>
+            <li>ResizeObserver pro správnou inicializaci mapy při lazy-load záložky</li>
+            <li>Uložení dopravních dat do NBSense DB (max 1×/hod) přes GAS endpoint</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- v2.4 -->
+      <div class="changelog-entry">
+        <div class="changelog-meta">
+          <div class="changelog-version">v2.4</div>
+          <div class="changelog-date">10. 3. 2026</div>
+          <div class="changelog-dot"></div>
+        </div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            Smart Region — NBSense grafy
+            <span class="cl-badge new">Nové</span>
+          </div>
+          <ul class="cl-items">
+            <li><strong>Záložka „Smart Region"</strong> s historickými grafy měření (teplota, PM10, PM2.5, NO2, půda, voda, radiace)</li>
+            <li>Přepínání časového okna: 24h / 7d / 30d / 60d / 90d / 180d / 365d</li>
+            <li>Granularita agregace: auto / hodina / den / týden / měsíc</li>
+            <li>Přepínání viditelnosti datasetů přes checkboxy</li>
+            <li>GAS API endpoint <code>format=json</code> s agregací na backendu</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- v2.3 -->
+      <div class="changelog-entry">
+        <div class="changelog-meta">
+          <div class="changelog-version">v2.3</div>
+          <div class="changelog-date">5. 3. 2026</div>
+          <div class="changelog-dot"></div>
+        </div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            Počasí — Open-Meteo integrace
+            <span class="cl-badge new">Nové</span>
+          </div>
+          <ul class="cl-items">
+            <li><strong>Záložka „Počasí"</strong> s hero kartou Nový Bor (osobní stanice) a gridem 7 měst Severních Čech</li>
+            <li>10denní výhled s ikonami WMO kódů, srážkami, min/max teplotou</li>
+            <li>Mini forecast strip na každé kartě města (příštích 5 dní)</li>
+            <li>Automatický refresh každých 30 minut při aktivní záložce</li>
+            <li>Česká lokalizace WMO kódů (60+ stavů počasí)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- v2.2 -->
+      <div class="changelog-entry">
+        <div class="changelog-meta">
+          <div class="changelog-version">v2.2</div>
+          <div class="changelog-date">1. 3. 2026</div>
+          <div class="changelog-dot"></div>
+        </div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            SEO audit &amp; Google Search Console
+            <span class="cl-badge fix">Opravy</span>
+            <span class="cl-badge design">SEO</span>
+          </div>
+          <ul class="cl-items">
+            <li>Implementace <strong>robots.txt</strong>, sitemap.xml, manifest.json, favicon sady</li>
+            <li>Schema.org <code>RadioStation</code> + <code>WebApplication</code> JSON-LD markup</li>
+            <li>OG image 1200×630px, kompletní Open Graph + Twitter Card tagy</li>
+            <li>Nastavení Google Search Console, ověření vlastnictví domény</li>
+            <li>Canonical URL, <code>lang="cs"</code>, meta description</li>
+            <li>Google Analytics (GA4) + GTM + Microsoft Clarity integrace</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- v2.1 -->
+      <div class="changelog-entry">
+        <div class="changelog-meta">
+          <div class="changelog-version">v2.1</div>
+          <div class="changelog-date">25. 2. 2026</div>
+          <div class="changelog-dot"></div>
+        </div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            Globální přehrávač &amp; UX
+            <span class="cl-badge design">Design</span>
+          </div>
+          <ul class="cl-items">
+            <li><strong>Sticky globální radio přehrávač</strong> s animací slideDown a ON AIR pulsem</li>
+            <li>Ovládání hlasitosti, tlačítko play/stop, název stanice</li>
+            <li>Kontextové tlačítko „Obnovit" — reaguje na aktivní záložku</li>
+            <li>4 barevná témata (dark, white, blue, red) s persistencí v localStorage</li>
+            <li>Ember efekt na hover odkazech v patičce</li>
+            <li>Responzivní layout pro mobilní zařízení</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- v2.0 -->
+      <div class="changelog-entry">
+        <div class="changelog-meta">
+          <div class="changelog-version">v2.0</div>
+          <div class="changelog-date">20. 2. 2026</div>
+          <div class="changelog-dot"></div>
+        </div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            Přepis na SPA · Tab architektura
+            <span class="cl-badge major">Major</span>
+          </div>
+          <ul class="cl-items">
+            <li>Kompletní přepis na jednofájlový SPA bez závislostí na frameworku</li>
+            <li>Tab navigace: Zprávy / Rádio / Počasí / Smart Region / Příroda</li>
+            <li>Lazy-load jednotlivých záložek (data se stahují při prvním otevření)</li>
+            <li>Live JSON feed zpráv z GitHub raw URL s automatickým refresh 5 min</li>
+            <li>Normalizace RSS XML i JSON formátů v jednom rendereru</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- v1.0 -->
+      <div class="changelog-entry">
+        <div class="changelog-meta">
+          <div class="changelog-version">v1.0</div>
+          <div class="changelog-date">13. 2. 2026</div>
+          <div class="changelog-dot"></div>
+        </div>
+        <div class="changelog-body">
+          <div class="changelog-title">
+            Počáteční release
+            <span class="cl-badge new">Launch</span>
+          </div>
+          <ul class="cl-items">
+            <li>První veřejná verze Jouza Radio&amp;News na newsandradio.cz</li>
+            <li>Základní agregace RSS zpráv + seznam rádiových streamů</li>
+            <li>Nasazení na Vercel, propojení s GitHub repozitářem</li>
+            <li>Tmavé téma, responzivní layout</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="footer-links">
+    <a href="https://ember-pa.cz/" target="_blank" rel="noopener noreferrer">Ember PA</a> <span class="sep">|</span>
+    <a href="https://ondrex-ember.github.io/zenaudio/" target="_blank" rel="noopener noreferrer">Jouza Audio Lab</a> <span class="sep">|</span>
+    <a href="https://ondrex-ember.github.io/tech-1000-piv/" target="_blank" rel="noopener noreferrer">Těch 1000 piv</a> <span class="sep">|</span>
+    <a href="https://ondrex-ember.github.io/doupe-2/" target="_blank" rel="noopener noreferrer">Doupě 2</a> <span class="sep">|</span>
+    <a href="https://myscriptorium.cz" target="_blank" rel="noopener noreferrer">Scriptorium</a> <span class="sep">|</span>
+    <a href="https://oracoolio.com" target="_blank" rel="noopener noreferrer">Oracoolio</a>
+  </div>
+  <div class="footer-copy">&copy; 2026. Vyvíjeno s ❤️ láskou v Novém Boru</div>
+</footer>
+
+<script>
+  function setTheme(theme) {
+    document.body.className = 'theme-' + theme;
+    localStorage.setItem('pref-theme', theme);
+    document.querySelectorAll('.t-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-theme') === theme);
+    });
+  }
+  const saved = localStorage.getItem('pref-theme') || 'dark';
+  setTheme(saved);
+</script>
+
+</body>
+</html>
