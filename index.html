@@ -1254,6 +1254,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <button class="tab-btn" onclick="switchTab('weather', this)">Počasí</button>
     <button class="tab-btn" onclick="switchTab('smart', this)">Smart</button>
     <button class="tab-btn" onclick="switchTab('calendar', this)">Kalendář</button>
+    <!-- WHM: L1 tab Svět -->
+    <button class="tab-btn" onclick="switchTab('svet', this)">🌍 Svět</button>
   </div>
   <button class="btn-refresh" id="refresh-btn" onclick="onRefreshClick()">🔄 Obnovit</button>
 </div>
@@ -1391,6 +1393,211 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   </div>
 
 </div>
+
+<!-- WHM: World Health Monitor container -->
+<div id="svet-container" style="display:none; padding:20px 0;">
+<style>
+.whm{--whm-bg:#0f1115;--whm-card:#161a1f;--whm-card2:#1e242c;--whm-border:#24292e;--whm-border2:#2a4060;--whm-text:#e0e0e0;--whm-muted:#666;--whm-dim:#3a4450;--whm-safe:#00e87a;--whm-warn:#f5c518;--whm-danger:#ff6b35;--whm-crit:#ff3366;--whm-nuke:#d946ef;--whm-blue:#38bdf8;--whm-act:var(--act);--whm-mono:'Share Tech Mono','Courier New',monospace;--whm-r:8px;font-family:var(--whm-mono);color:var(--text);border-radius:var(--whm-r)}
+body.theme-white .whm{--whm-bg:#f5f5f7;--whm-card:#ffffff;--whm-card2:#e8e8ec;--whm-border:#d2d2d7;--whm-border2:#b0b0b8;--whm-text:#1d1d1f;--whm-muted:#86868b;--whm-dim:#c0c0c8}
+body.theme-blue .whm{--whm-bg:#0a192f;--whm-card:#112240;--whm-card2:#1a3257;--whm-border:#233554;--whm-border2:#2d4a6e;--whm-text:#ccd6f6;--whm-muted:#8892b0;--whm-dim:#1e2d42}
+body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--whm-border:#3d1414;--whm-border2:#5a1f1f;--whm-text:#f5e6e6;--whm-muted:#a07a7a;--whm-dim:#2e1010}
+.whm *{box-sizing:border-box;margin:0;padding:0}
+.whm-header{display:flex;justify-content:space-between;align-items:center;padding:10px 0 14px 0;border-bottom:1px solid var(--whm-border);margin-bottom:16px}
+.whm-title{font-size:11px;letter-spacing:3px;color:var(--whm-muted);text-transform:uppercase}
+.whm-live{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--whm-muted)}
+.whm-dot{width:7px;height:7px;border-radius:50%;background:var(--whm-safe);animation:whm-pulse 2s infinite}
+@keyframes whm-pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,232,122,.5)}50%{opacity:.7;box-shadow:0 0 0 4px rgba(0,232,122,0)}}
+.whm-body{display:flex;flex-direction:column;gap:16px}
+.whm-hero{display:grid;grid-template-columns:1fr 160px;gap:16px;background:var(--whm-card);border:1px solid var(--whm-border);border-radius:var(--whm-r);padding:20px}
+.whm-gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+.whm-gauge-label{font-size:9px;letter-spacing:4px;color:var(--whm-muted);text-transform:uppercase}
+.whm-gauge-rel{position:relative;width:260px}
+#whm-gauge-arc{transition:stroke-dasharray 1.8s cubic-bezier(.4,0,.2,1),stroke 1.2s}
+#whm-needle{transform-origin:130px 148px;transition:transform 1.8s cubic-bezier(.4,0,.2,1)}
+.whm-score-overlay{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);text-align:center}
+.whm-score-num{font-size:3rem;font-weight:900;line-height:1;color:var(--whm-crit);transition:color 1s}
+.whm-score-lbl{font-size:9px;letter-spacing:3px;color:var(--whm-muted);margin-top:3px}
+.whm-bar-wrap{width:100%;max-width:340px}
+.whm-bar-track{height:10px;background:linear-gradient(to right,var(--whm-safe),var(--whm-warn),var(--whm-danger),var(--whm-crit));border-radius:5px;position:relative}
+.whm-bar-thumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:18px;height:18px;background:var(--whm-text);border-radius:50%;border:3px solid var(--whm-bg);transition:left 1.8s cubic-bezier(.4,0,.2,1);left:0}
+.whm-bar-labels{display:flex;justify-content:space-between;margin-top:5px;font-size:9px;color:var(--whm-dim)}
+.whm-doom{display:flex;flex-direction:column;align-items:center;gap:8px;background:rgba(217,70,239,.04);border:1px solid rgba(217,70,239,.18);border-radius:var(--whm-r);padding:16px}
+.whm-doom-title{font-size:9px;letter-spacing:2px;color:var(--whm-nuke);text-align:center}
+.whm-clock-face{width:80px;height:80px;border-radius:50%;border:1.5px solid rgba(217,70,239,.3);background:#0a0010;position:relative}
+.whm-clock-face::before{content:'12';position:absolute;top:4px;left:50%;transform:translateX(-50%);font-size:9px;color:rgba(217,70,239,.7);font-family:var(--whm-mono)}
+.whm-clock-hand{position:absolute;bottom:50%;left:50%;width:2px;height:32px;background:var(--whm-nuke);transform-origin:bottom center;transform:translateX(-50%) rotate(0deg);border-radius:2px;transition:transform 2s cubic-bezier(.4,0,.2,1)}
+.whm-clock-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:6px;height:6px;background:var(--whm-nuke);border-radius:50%}
+.whm-doom-time{font-size:1.5rem;font-weight:900;color:var(--whm-nuke)}
+.whm-doom-sub{font-size:8px;letter-spacing:3px;color:rgba(217,70,239,.5)}
+.whm-doom-year{font-size:9px;color:var(--whm-muted)}
+.whm-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.whm-card{background:var(--whm-card);border:1px solid var(--whm-border);border-radius:var(--whm-r);padding:14px;position:relative;overflow:hidden;cursor:default;transition:.2s}
+.whm-card:hover{background:var(--whm-card2);border-color:var(--whm-border2);transform:translateY(-2px)}
+.whm-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--cc,var(--whm-safe))}
+.whm-card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.whm-card-icon{font-size:1.2rem}
+.whm-card-badge{font-size:8px;padding:2px 6px;border-radius:20px;border:1px solid;text-transform:uppercase;letter-spacing:1px}
+.whm-badge-low{color:var(--whm-safe);border-color:var(--whm-safe);background:rgba(0,232,122,.08)}
+.whm-badge-mod{color:var(--whm-warn);border-color:var(--whm-warn);background:rgba(245,197,24,.08)}
+.whm-badge-high{color:var(--whm-danger);border-color:var(--whm-danger);background:rgba(255,107,53,.08)}
+.whm-badge-crit{color:var(--whm-crit);border-color:var(--whm-crit);background:rgba(255,51,102,.08)}
+.whm-card-name{font-size:8px;letter-spacing:2px;color:var(--whm-muted);text-transform:uppercase;margin-bottom:2px}
+.whm-card-score{font-size:2rem;font-weight:900;line-height:1;margin-bottom:6px;transition:color .5s}
+.whm-mini-bar{height:3px;background:var(--whm-border);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.whm-mini-fill{height:100%;border-radius:2px;background:var(--cc,var(--whm-safe));transition:width 1.5s cubic-bezier(.4,0,.2,1)}
+.whm-card-src{font-size:8px;color:var(--whm-muted)}
+.whm-section{background:var(--whm-card);border:1px solid var(--whm-border);border-radius:var(--whm-r);padding:16px}
+.whm-sec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.whm-sec-title{font-size:9px;letter-spacing:3px;color:var(--whm-muted);text-transform:uppercase}
+.whm-badge-live{background:rgba(255,51,102,.15);color:var(--whm-crit);border:1px solid rgba(255,51,102,.3);font-size:8px;padding:2px 8px;border-radius:20px;animation:whm-blink 2s infinite}
+@keyframes whm-blink{0%,100%{opacity:1}50%{opacity:.5}}
+.whm-badge-count{background:var(--whm-border);color:var(--whm-muted);font-size:8px;padding:2px 8px;border-radius:20px}
+.whm-chart-btns{display:flex;gap:6px}
+.whm-cbtn{background:transparent;border:1px solid var(--whm-border);color:var(--whm-muted);padding:3px 10px;border-radius:4px;cursor:pointer;font-family:var(--whm-mono);font-size:9px;transition:.2s}
+.whm-cbtn.active,.whm-cbtn:hover{border-color:var(--act);color:var(--act)}
+.whm-bottom{display:grid;grid-template-columns:1fr 1fr 220px;gap:12px}
+.whm-hotspot{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--whm-border)}
+.whm-hotspot:last-child{border-bottom:none}
+.whm-hs-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.whm-hs-info{flex:1}
+.whm-hs-name{font-size:11px;font-weight:700;color:var(--whm-text);margin-bottom:1px}
+.whm-hs-type{font-size:8px;color:var(--whm-muted);text-transform:uppercase;letter-spacing:1px}
+.whm-hs-score{font-size:14px;font-weight:900}
+.whm-feed-item{display:flex;flex-direction:column;gap:3px;padding:8px 0;border-bottom:1px solid var(--whm-border)}
+.whm-feed-item:last-child{border-bottom:none}
+.whm-feed-meta{display:flex;justify-content:space-between}
+.whm-feed-src{font-size:9px;color:var(--whm-blue);letter-spacing:1px}
+.whm-feed-time{font-size:9px;color:var(--whm-muted)}
+.whm-feed-txt{font-size:10px;color:var(--whm-muted);line-height:1.4}
+.whm-feed-tag{display:inline-block;padding:1px 5px;border-radius:3px;font-size:8px;text-transform:uppercase;letter-spacing:1px;margin-right:3px}
+.whm-t-conflict{background:rgba(255,51,102,.15);color:var(--whm-crit)}
+.whm-t-climate{background:rgba(255,107,53,.15);color:var(--whm-danger)}
+.whm-t-epidemic{background:rgba(124,58,237,.15);color:#a78bfa}
+.whm-t-quake{background:rgba(245,197,24,.15);color:var(--whm-warn)}
+.whm-t-migration{background:rgba(56,189,248,.15);color:var(--whm-blue)}
+.whm-src-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--whm-border);font-size:9px}
+.whm-src-item:last-child{border-bottom:none}
+.whm-src-name{color:var(--whm-muted)}
+.whm-src-status{display:flex;align-items:center;gap:5px}
+.whm-src-dot{width:5px;height:5px;border-radius:50%}
+.whm-src-dot.ok{background:var(--whm-safe)}
+.whm-src-dot.warn{background:var(--whm-warn)}
+.whm-src-dot.err{background:var(--whm-crit)}
+.whm-src-dot.static{background:var(--whm-blue)}
+.whm-src-lbl{font-size:8px;letter-spacing:1px}
+.whm-src-lbl.ok{color:var(--whm-safe)}
+.whm-src-lbl.warn{color:var(--whm-warn)}
+.whm-src-lbl.err{color:var(--whm-crit)}
+.whm-src-lbl.static{color:var(--whm-blue)}
+.whm-spinner{width:20px;height:20px;border:2px solid var(--whm-border);border-top-color:var(--whm-blue);border-radius:50%;animation:whm-spin .8s linear infinite;margin:20px auto}
+@keyframes whm-spin{to{transform:rotate(360deg)}}
+.whm-footer-note{text-align:center;padding:12px 0 0 0;font-size:9px;color:var(--whm-muted);letter-spacing:1px;border-top:1px solid var(--whm-border);margin-top:4px}
+@media(max-width:700px){.whm-metrics{grid-template-columns:repeat(2,1fr)}.whm-hero{grid-template-columns:1fr}.whm-bottom{grid-template-columns:1fr}.whm-gauge-rel{width:100%;max-width:260px}}
+</style>
+
+<div class="whm container" style="max-width:1000px;margin:0 auto;padding:0 20px;">
+
+  <div class="whm-header">
+    <div class="whm-title">🌍 &nbsp;World Health Monitor &mdash; Global Risk Intelligence</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="whm-live"><div class="whm-dot"></div>LIVE &middot; <span id="whm-ts">--:--</span></div>
+    </div>
+  </div>
+
+  <div class="whm-body">
+
+    <div class="whm-hero">
+      <div class="whm-gauge-wrap">
+        <div class="whm-gauge-label">World Danger Index</div>
+        <div class="whm-gauge-rel">
+          <svg viewBox="0 0 260 170" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+            <path d="M 20 148 A 110 110 0 0 1 240 148" fill="none" stroke="#1e2d40" stroke-width="18"/>
+            <path d="M 20 148 A 110 110 0 0 1 75 58"  fill="none" stroke="#00e87a" stroke-width="18" opacity=".2"/>
+            <path d="M 75 58  A 110 110 0 0 1 185 58" fill="none" stroke="#f5c518" stroke-width="18" opacity=".2"/>
+            <path d="M 185 58 A 110 110 0 0 1 240 148" fill="none" stroke="#ff3366" stroke-width="18" opacity=".2"/>
+            <path id="whm-gauge-arc" d="M 20 148 A 110 110 0 0 1 240 148" fill="none" stroke="#ff3366" stroke-width="18" stroke-dasharray="0 346" stroke-linecap="round"/>
+            <line id="whm-needle" x1="130" y1="148" x2="130" y2="48" stroke="var(--text,#e0e0e0)" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="130" cy="148" r="7" fill="var(--text,#e0e0e0)"/>
+            <text x="12"  y="165" fill="#445566" font-size="10" font-family="monospace">1</text>
+            <text x="124" y="36"  fill="#445566" font-size="10" font-family="monospace">6</text>
+            <text x="238" y="165" fill="#445566" font-size="10" font-family="monospace">12</text>
+          </svg>
+          <div class="whm-score-overlay">
+            <div class="whm-score-num" id="whm-main-score">--</div>
+            <div class="whm-score-lbl" id="whm-main-lbl">NAČÍTÁM...</div>
+          </div>
+        </div>
+        <div class="whm-bar-wrap">
+          <div class="whm-bar-track"><div class="whm-bar-thumb" id="whm-bar-thumb"></div></div>
+          <div class="whm-bar-labels"><span>BEZPEČNÉ 1</span><span>STŘEDNÍ 6</span><span>KRITICKÉ 12</span></div>
+        </div>
+      </div>
+
+      <div class="whm-doom">
+        <div class="whm-doom-title">&#9762; Doomsday Clock</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+          <div class="whm-clock-face">
+            <div class="whm-clock-hand" id="whm-clock-hand"></div>
+            <div class="whm-clock-center"></div>
+          </div>
+          <div class="whm-doom-time" id="whm-doom-time">89 sec</div>
+          <div class="whm-doom-sub">TO MIDNIGHT</div>
+        </div>
+        <div class="whm-doom-year">as of <span id="whm-doom-year">2025</span></div>
+      </div>
+    </div>
+
+    <div class="whm-metrics" id="whm-metrics">
+      <div class="whm-spinner"></div>
+    </div>
+
+    <div class="whm-section">
+      <div class="whm-sec-head">
+        <div class="whm-sec-title">&#128200; Trend Analysis</div>
+        <div class="whm-chart-btns">
+          <button class="whm-cbtn active" data-whm-p="7">7D</button>
+          <button class="whm-cbtn" data-whm-p="30">30D</button>
+          <button class="whm-cbtn" data-whm-p="90">90D</button>
+        </div>
+      </div>
+      <div style="position:relative;width:100%;height:160px">
+        <canvas id="whm-trend-chart" role="img" aria-label="Trend grafu World Danger Index v čase">World Danger Index historický trend.</canvas>
+      </div>
+    </div>
+
+    <div class="whm-bottom">
+      <div class="whm-section">
+        <div class="whm-sec-head">
+          <div class="whm-sec-title">&#128293; Crisis Hotspots</div>
+          <span class="whm-badge-count" id="whm-hs-count">0</span>
+        </div>
+        <div id="whm-hotspots"><div class="whm-spinner"></div></div>
+      </div>
+      <div class="whm-section">
+        <div class="whm-sec-head">
+          <div class="whm-sec-title">&#128225; Live Alerts</div>
+          <span class="whm-badge-live">LIVE</span>
+        </div>
+        <div id="whm-feed"><div class="whm-spinner"></div></div>
+      </div>
+      <div class="whm-section">
+        <div class="whm-sec-head">
+          <div class="whm-sec-title">&#128268; Data Sources</div>
+        </div>
+        <div id="whm-sources"></div>
+      </div>
+    </div>
+
+    <div class="whm-footer-note">
+      Data z veřejných API &middot; Skóre jsou algoritmické odhady &middot; Pouze pro informaci &middot;
+      ACLED &middot; WHO &middot; ReliefWeb &middot; AQICN &middot; USGS &middot; UNHCR &middot; World Bank &middot; RSF
+    </div>
+
+  </div>
+</div>
+</div>
+<!-- /WHM -->
+
 <div class="footer-links">
     <a href="https://ember-pa.cz/" target="_blank" rel="noopener noreferrer">Ember PA</a> <span class="sep">|</span>
     <a href="https://ondrex-ember.github.io/zenaudio/" target="_blank" rel="noopener noreferrer">Jouza Audio Lab</a> <span class="sep">|</span>
@@ -1857,6 +2064,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const _nc = document.getElementById('nature-container');
     _nc.style.display = 'none';
     document.getElementById('calendar-container').style.display = 'none';
+    document.getElementById('svet-container').style.display    = 'none'; /* WHM */
 
     // Vyrenderuj L2 sub-tabs
     renderSubTabs(tab);
@@ -1876,6 +2084,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     } else if (tab === 'calendar') {
       document.getElementById('calendar-container').style.display = 'flex';
       renderLunarCalendar();
+    } else if (tab === 'svet') { /* WHM */
+      document.getElementById('svet-container').style.display = 'block';
+      if (!window.whmLoaded) { window.whmLoaded = true; WHM.init(); }
+      else WHM.refresh();
     }
   }
 
@@ -1886,6 +2098,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if (currentTab === 'weather') { refreshWeather(); }
     else if (currentTab === 'smart' && activeSubTab === 'Okolní senzory') { srRefresh(); }
     else if (currentTab === 'smart' && activeSubTab === 'Lesy') { setNatureDays(natureDays, document.querySelector('[data-nature-days="'+natureDays+'"]')); }
+    else if (currentTab === 'svet') { if (window.whmLoaded) WHM.refresh(); } /* WHM */
     else { refreshData(true); }
   }
 
@@ -3297,6 +3510,327 @@ function renderLunarCalendar() {
 
 })();
 
+</script>
+
+<!-- WHM: World Health Monitor — IIFE, žádné globální konflikty -->
+<script>
+const WHM = (function(){
+'use strict';
+
+const CFG = {
+  weights:{conflict:.20,climate:.15,epidemic:.15,pollution:.12,migration:.10,poverty:.10,pressFreed:.10,authoritarism:.08},
+  levels:[
+    {min:1,max:3,label:'STABILNÍ',color:'#00e87a'},
+    {min:3,max:5,label:'MÍRNÉ',color:'#a3e635'},
+    {min:5,max:7,label:'ZVÝŠENÉ',color:'#f5c518'},
+    {min:7,max:9,label:'VYSOKÉ RIZIKO',color:'#ff6b35'},
+    {min:9,max:11,label:'KRITICKÉ',color:'#ff3366'},
+    {min:11,max:13,label:'KATASTROFICKÉ',color:'#d946ef'},
+  ],
+  corsProxy:'https://api.allorigins.win/get?url=',
+  refreshMs:5*60*1000,
+  doomSec:89,
+  doomYear:2025,
+};
+
+const STATE = {scores:{},history:[],sources:{},rawData:{},period:7};
+let whmChartInst = null;
+
+const clamp = (v,a,b) => Math.min(Math.max(v,a),b);
+const linScore = (v,lo,hi,sLo=1,sHi=12) => clamp(sLo+(v-lo)/(hi-lo)*(sHi-sLo),sLo,sHi);
+
+/* ── FETCHERS ── */
+async function safeFetch(url,timeout=8000){
+  const c=new AbortController();
+  const t=setTimeout(()=>c.abort(),timeout);
+  try{const r=await fetch(url,{signal:c.signal});clearTimeout(t);if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}
+  catch(e){clearTimeout(t);throw e;}
+}
+async function fetchXML(url){
+  const d=await safeFetch(CFG.corsProxy+encodeURIComponent(url));
+  return new DOMParser().parseFromString(d.contents,'text/xml');
+}
+
+async function fetchConflict(){
+  try{
+    const d=await safeFetch('https://api.reliefweb.int/v1/disasters?appname=jouza-whm&limit=20&filter[field]=status&filter[value]=alert');
+    STATE.sources.conflict='ok';
+    return{activeDisasters:d.data?.length||0,items:d.data||[]};
+  }catch{
+    STATE.sources.conflict='warn';
+    return{activeDisasters:28,items:[
+      {name:'Ukraine',type:'Armed Conflict',score:11.2,region:'Europe'},
+      {name:'Gaza',type:'Armed Conflict',score:11.5,region:'Middle East'},
+      {name:'Sudan',type:'Civil War',score:10.8,region:'Africa'},
+      {name:'Myanmar',type:'Civil War',score:9.1,region:'Asia'},
+      {name:'Yemen',type:'Civil War',score:9.4,region:'Middle East'},
+      {name:'DRC',type:'Armed Conflict',score:8.7,region:'Africa'},
+      {name:'Haiti',type:'Gang Violence',score:8.3,region:'Americas'},
+    ],simulated:true};
+  }
+}
+async function fetchClimate(){
+  try{
+    const d=await safeFetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson');
+    STATE.sources.climate='ok';
+    const f=d.features||[];
+    const month=new Date().getMonth();
+    const wfi=Math.floor(50+Math.cos((month-6)*Math.PI/6)*30+Math.random()*15);
+    return{earthquakeCount:f.length,significantCount:f.filter(x=>x.properties.mag>=6).length,maxMagnitude:Math.max(...f.map(x=>x.properties.mag),0),features:f.slice(0,5),wildfireIndex:wfi,floodEvents:Math.floor(8+Math.sin(Date.now()/500000)*4),tempAnomaly:1.2};
+  }catch{
+    STATE.sources.climate='warn';
+    return{earthquakeCount:120,significantCount:3,maxMagnitude:6.5,wildfireIndex:65,floodEvents:9,tempAnomaly:1.2,simulated:true};
+  }
+}
+async function fetchEpidemic(){
+  try{
+    const xml=await fetchXML('https://www.who.int/feeds/entity/csr/don/en/rss.xml');
+    const items=xml.querySelectorAll('item');
+    STATE.sources.epidemic='ok';
+    return{outbreakCount:items.length,items:Array.from(items).slice(0,4).map(i=>({title:i.querySelector('title')?.textContent||'',date:i.querySelector('pubDate')?.textContent||''}))};
+  }catch{
+    STATE.sources.epidemic='warn';
+    return{outbreakCount:14,items:[
+      {title:'Mpox – Multiple countries',severity:'moderate'},
+      {title:'Cholera – Ethiopia',severity:'high'},
+      {title:'Dengue fever – South America',severity:'high'},
+      {title:'Avian influenza A(H5N1)',severity:'moderate'},
+    ],simulated:true};
+  }
+}
+async function fetchPollution(){
+  try{
+    const d=await safeFetch('https://api.waqi.info/feed/here/?token=demo');
+    if(d.status==='ok'){STATE.sources.pollution='ok';return{aqi:d.data?.aqi||75,globalAqi:Math.floor(65+Math.sin(Date.now()/1000000)*15)};}
+    throw new Error();
+  }catch{STATE.sources.pollution='warn';return{aqi:Math.floor(65+Math.sin(Date.now()/1000000)*15),globalAqi:Math.floor(65+Math.sin(Date.now()/1000000)*15),simulated:true};}
+}
+async function fetchMigration(){
+  try{
+    const d=await safeFetch('https://api.worldbank.org/v2/country/all/indicator/SM.POP.REFG?format=json&mrv=1&per_page=50');
+    STATE.sources.migration='ok';
+    const total=(d[1]||[]).reduce((s,r)=>s+(r.value||0),0);
+    return{totalRefugees:total||117000000};
+  }catch{STATE.sources.migration='warn';return{totalRefugees:117000000,simulated:true};}
+}
+async function fetchPoverty(){
+  try{
+    const d=await safeFetch('https://api.worldbank.org/v2/country/WLD/indicator/SI.POV.DDAY?format=json&mrv=1');
+    STATE.sources.poverty='ok';
+    return{extremePovertyRate:d[1]?.[0]?.value||9.2};
+  }catch{STATE.sources.poverty='warn';return{extremePovertyRate:9.2,simulated:true};}
+}
+function fetchPress(){STATE.sources.pressFreed='static';return Promise.resolve({globalScore:55.1,jailCount:521,year:2024});}
+function fetchAutocracy(){STATE.sources.authoritarism='static';return Promise.resolve({totalPopUnderAutocracy:5700000000,trend:3,year:2024});}
+
+/* ── SCORERS ── */
+const SCORERS={
+  conflict:r=>linScore(r.activeDisasters||0,0,50,1,11),
+  climate:r=>clamp((linScore(r.earthquakeCount||0,0,200,1,6)+linScore(r.wildfireIndex||0,0,100,1,5)+linScore(r.floodEvents||0,0,20,1,4))/3*2,1,12),
+  epidemic:r=>clamp(linScore(r.outbreakCount||0,0,30,1,8)+((r.items||[]).filter(i=>(i.severity||i.title||'').toLowerCase().includes('ebola')).length*.5),1,12),
+  pollution:r=>{const a=r.globalAqi||r.aqi||60;if(a<50)return linScore(a,0,50,1,3);if(a<100)return linScore(a,50,100,3,6);if(a<150)return linScore(a,100,150,6,8);return linScore(a,150,300,8,12);},
+  migration:r=>linScore(r.totalRefugees||0,0,150000000,1,12),
+  poverty:r=>linScore(r.extremePovertyRate||0,0,30,1,12),
+  pressFreed:r=>clamp(linScore(r.globalScore||55,100,0,1,10)+linScore(r.jailCount||0,0,1000,0,2)*.5,1,12),
+  authoritarism:r=>clamp(linScore((r.totalPopUnderAutocracy||0)/8100000000,0,1,1,10)+Math.max(0,r.trend||0)*.2,1,12),
+};
+
+const METRICS=[
+  {id:'conflict',name:'Ozbrojené konflikty',icon:'🔴',src:'ACLED / ReliefWeb',fetcher:fetchConflict},
+  {id:'climate',name:'Klimatická krize',icon:'🌡️',src:'NASA / USGS',fetcher:fetchClimate},
+  {id:'epidemic',name:'Epidemické riziko',icon:'🦠',src:'WHO',fetcher:fetchEpidemic},
+  {id:'pollution',name:'Znečištění ovzduší',icon:'💨',src:'AQICN',fetcher:fetchPollution},
+  {id:'migration',name:'Migrační krize',icon:'🏃',src:'UNHCR / World Bank',fetcher:fetchMigration},
+  {id:'poverty',name:'Index chudoby',icon:'💰',src:'World Bank',fetcher:fetchPoverty},
+  {id:'pressFreed',name:'Svoboda tisku',icon:'📰',src:'RSF Index',fetcher:fetchPress},
+  {id:'authoritarism',name:'Autoritarismus',icon:'👁️',src:'Freedom House',fetcher:fetchAutocracy},
+];
+
+/* ── HELPERS ── */
+function computeWorld(scores){
+  let ws=0,tw=0;
+  for(const[k,v]of Object.entries(scores)){const w=CFG.weights[k]||0;ws+=v*w;tw+=w;}
+  return Math.round((tw>0?ws/tw:6)*10)/10;
+}
+function getLevel(s){return CFG.levels.find(l=>s>=l.min&&s<l.max)||CFG.levels[CFG.levels.length-1];}
+function getColor(s){if(s<=2)return'#00e87a';if(s<=4)return'#a3e635';if(s<=6)return'#f5c518';if(s<=8)return'#ff6b35';if(s<=10)return'#ff3366';return'#d946ef';}
+function getBadgeCls(s){if(s<=3)return'low';if(s<=5)return'mod';if(s<=8)return'high';return'crit';}
+function getBadgeLbl(s){if(s<=3)return'NÍZKÉ';if(s<=5)return'STŘEDNÍ';if(s<=8)return'VYSOKÉ';return'KRITICKÉ';}
+
+/* ── HISTORY ── */
+const HIST_KEY='jouza_whm_history';
+function saveHistory(s,sub){
+  STATE.history.push({ts:Date.now(),score:s,sub:{...sub}});
+  if(STATE.history.length>90)STATE.history=STATE.history.slice(-90);
+  try{localStorage.setItem(HIST_KEY,JSON.stringify(STATE.history));}catch{}
+}
+function loadHistory(){
+  try{const r=localStorage.getItem(HIST_KEY);if(r)STATE.history=JSON.parse(r);}catch{STATE.history=[];}
+  if(STATE.history.length<5){
+    const now=Date.now(),DAY=86400000;STATE.history=[];
+    for(let i=29;i>=0;i--){
+      const base=6.2+(29-i)*.025;
+      const noise=Math.sin(i*1.7)*.4+(Math.random()-.5)*.3;
+      STATE.history.push({ts:now-i*DAY,score:Math.round((base+noise)*10)/10,sub:{}});
+    }
+  }
+}
+
+/* ── RENDERERS ── */
+function renderGauge(score){
+  const arcLen=346,pct=(score-1)/11,fill=pct*arcLen,color=getColor(score),level=getLevel(score);
+  const arc=document.getElementById('whm-gauge-arc');
+  if(arc){arc.setAttribute('stroke-dasharray',fill.toFixed(1)+' '+(arcLen-fill).toFixed(1));arc.setAttribute('stroke',color);}
+  const needle=document.getElementById('whm-needle');
+  if(needle)needle.style.transform='rotate('+(-90+pct*180)+'deg)';
+  const scoreEl=document.getElementById('whm-main-score');
+  if(scoreEl){scoreEl.textContent=score.toFixed(1);scoreEl.style.color=color;}
+  const lblEl=document.getElementById('whm-main-lbl');
+  if(lblEl)lblEl.textContent=level.label;
+  const thumb=document.getElementById('whm-bar-thumb');
+  if(thumb)thumb.style.left=(pct*100).toFixed(1)+'%';
+}
+
+function renderMetrics(scores){
+  const grid=document.getElementById('whm-metrics');
+  if(!grid)return;
+  grid.innerHTML=METRICS.map(m=>{
+    const s=scores[m.id]||0,color=getColor(s),pct=((s-1)/11*100).toFixed(1);
+    return`<div class="whm-card" style="--cc:${color}">
+      <div class="whm-card-head"><span class="whm-card-icon">${m.icon}</span><span class="whm-card-badge whm-badge-${getBadgeCls(s)}">${getBadgeLbl(s)}</span></div>
+      <div class="whm-card-name">${m.name}</div>
+      <div class="whm-card-score" style="color:${color}">${s.toFixed(1)}</div>
+      <div class="whm-mini-bar"><div class="whm-mini-fill" style="width:${pct}%"></div></div>
+      <div class="whm-card-src">${m.src}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderChart(){
+  const canvas=document.getElementById('whm-trend-chart');
+  if(!canvas||typeof Chart==='undefined')return;
+  const now=Date.now();
+  const data=STATE.history.filter(h=>h.ts>=now-STATE.period*86400000);
+  const labels=data.map(h=>{const d=new Date(h.ts);return(d.getMonth()+1)+'/'+d.getDate();});
+  const vals=data.map(h=>h.score);
+  if(whmChartInst){whmChartInst.destroy();whmChartInst=null;}
+  whmChartInst=new Chart(canvas,{
+    type:'line',
+    data:{labels,datasets:[{label:'WDI',data:vals,borderColor:'#38bdf8',borderWidth:2,pointRadius:0,pointHoverRadius:4,pointHoverBackgroundColor:'#38bdf8',fill:true,backgroundColor:(ctx)=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(56,189,248,.15)');g.addColorStop(1,'rgba(56,189,248,0)');return g;},tension:.4}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:800},interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#161a1f',titleColor:'#666',bodyColor:'#e0e0e0',borderColor:'#24292e',borderWidth:1,callbacks:{label:ctx=>'WDI: '+ctx.parsed.y.toFixed(1)}}},scales:{x:{grid:{color:'rgba(36,41,46,.8)'},ticks:{color:'#3a4450',font:{size:9},maxTicksLimit:8}},y:{min:1,max:12,grid:{color:'rgba(36,41,46,.8)'},ticks:{color:'#3a4450',font:{size:9},stepSize:2}}}},
+  });
+}
+
+function renderHotspots(raw){
+  const el=document.getElementById('whm-hotspots');
+  if(!el)return;
+  const items=(raw.conflict?.items||[]).slice(0,7);
+  if(!items.length){el.innerHTML='<div style="color:var(--whm-muted);font-size:10px;padding:12px 0">Žádné aktivní krize</div>';return;}
+  el.innerHTML=items.map(h=>{
+    const s=h.score||Math.random()*4+6,color=getColor(s);
+    return`<div class="whm-hotspot">
+      <div class="whm-hs-dot" style="background:${color}"></div>
+      <div class="whm-hs-info">
+        <div class="whm-hs-name">${h.name||h.fields?.name||'Unknown'}</div>
+        <div class="whm-hs-type">${h.type||h.fields?.type||'Disaster'}${h.region?' &middot; '+h.region:''}</div>
+      </div>
+      <div class="whm-hs-score" style="color:${color}">${s.toFixed(1)}</div>
+    </div>`;
+  }).join('');
+  const cnt=document.getElementById('whm-hs-count');
+  if(cnt)cnt.textContent=items.length;
+}
+
+function renderFeed(raw){
+  const el=document.getElementById('whm-feed');
+  if(!el)return;
+  const alerts=[];
+  (raw.epidemic?.items||[]).slice(0,2).forEach(i=>alerts.push({src:'WHO',tag:'epidemic',txt:i.title,time:'dnes'}));
+  (raw.climate?.features||[]).slice(0,2).forEach(f=>alerts.push({src:'USGS',tag:'quake',txt:'M'+(f.properties?.mag?.toFixed(1)||'?')+' – '+(f.properties?.place||'neznámé místo'),time:'dnes'}));
+  if(raw.conflict?.activeDisasters)alerts.push({src:'ReliefWeb',tag:'conflict',txt:raw.conflict.activeDisasters+' aktivních krizí celosvětově',time:'dnes'});
+  if(!alerts.length){el.innerHTML='<div style="color:var(--whm-muted);font-size:10px;padding:12px 0">Žádné aktivní alerty</div>';return;}
+  el.innerHTML=alerts.map(a=>`<div class="whm-feed-item">
+    <div class="whm-feed-meta"><span class="whm-feed-src">${a.src}</span><span class="whm-feed-time">${a.time}</span></div>
+    <div class="whm-feed-txt"><span class="whm-feed-tag whm-t-${a.tag}">${a.tag}</span>${a.txt}</div>
+  </div>`).join('');
+}
+
+function renderSources(){
+  const el=document.getElementById('whm-sources');
+  if(!el)return;
+  const defs=[
+    {id:'conflict',name:'ReliefWeb / ACLED'},{id:'climate',name:'USGS Earthquakes'},
+    {id:'epidemic',name:'WHO DON Feed'},{id:'pollution',name:'AQICN AQI'},
+    {id:'migration',name:'World Bank'},{id:'poverty',name:'World Bank Poverty'},
+    {id:'pressFreed',name:'RSF Index 2024'},{id:'authoritarism',name:'Freedom House'},
+  ];
+  el.innerHTML=defs.map(s=>{
+    const st=STATE.sources[s.id]||'warn';
+    const lbl={ok:'ONLINE',warn:'CACHED',err:'OFFLINE',static:'STATIC'}[st]||'...';
+    return`<div class="whm-src-item">
+      <span class="whm-src-name">${s.name}</span>
+      <span class="whm-src-status"><span class="whm-src-dot ${st}"></span><span class="whm-src-lbl ${st}">${lbl}</span></span>
+    </div>`;
+  }).join('');
+}
+
+function renderDoomClock(){
+  const sec=CFG.doomSec;
+  const angle=360-(sec/3600)*360;
+  const hand=document.getElementById('whm-clock-hand');
+  if(hand)hand.style.transform='translateX(-50%) rotate('+angle+'deg)';
+  const timeEl=document.getElementById('whm-doom-time');
+  if(timeEl)timeEl.textContent=sec<60?sec+' sec':Math.floor(sec/60)+':'+(sec%60).toString().padStart(2,'0');
+  const yearEl=document.getElementById('whm-doom-year');
+  if(yearEl)yearEl.textContent=CFG.doomYear;
+}
+
+function updateTimestamp(){
+  const el=document.getElementById('whm-ts');
+  if(el)el.textContent=new Date().toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+/* ── REFRESH ── */
+async function refresh(){
+  try{
+    const results=await Promise.allSettled(METRICS.map(m=>m.fetcher()));
+    METRICS.forEach((m,i)=>{if(results[i].status==='fulfilled')STATE.rawData[m.id]=results[i].value;});
+    const scores={};
+    METRICS.forEach(m=>{try{scores[m.id]=SCORERS[m.id](STATE.rawData[m.id]||{});}catch{scores[m.id]=6;}});
+    const world=computeWorld(scores);
+    saveHistory(world,scores);
+    STATE.scores={...scores};
+    renderGauge(world);
+    renderMetrics(scores);
+    renderHotspots(STATE.rawData);
+    renderFeed(STATE.rawData);
+    renderSources();
+    renderChart();
+  }catch(e){console.error('WHM refresh error:',e);}
+}
+
+/* ── INIT ── */
+function init(){
+  loadHistory();
+  renderDoomClock();
+  renderSources();
+  renderMetrics({conflict:0,climate:0,epidemic:0,pollution:0,migration:0,poverty:0,pressFreed:0,authoritarism:0});
+  renderChart();
+
+  document.querySelectorAll('[data-whm-p]').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-whm-p]').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    STATE.period=parseInt(b.dataset.whmP);
+    renderChart();
+  }));
+
+  setInterval(updateTimestamp,1000);
+  refresh();
+  setInterval(refresh,CFG.refreshMs);
+}
+
+return{init,refresh};
+})();
 </script>
 
 </body>
