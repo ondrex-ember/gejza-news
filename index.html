@@ -1318,8 +1318,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <button class="tab-btn" onclick="switchTab('weather', this)">Počasí</button>
     <button class="tab-btn" onclick="switchTab('smart', this)">Smart</button>
     <button class="tab-btn" onclick="switchTab('calendar', this)">Kalendář</button>
-    <!-- WHM: L1 tab Svět -->
-    <button class="tab-btn" onclick="switchTab('svet', this)">🌍 Svět</button>
   </div>
   <button class="btn-refresh" id="refresh-btn" onclick="onRefreshClick()">🔄 Obnovit</button>
 </div>
@@ -1688,7 +1686,7 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
   let activeSubTab = 'Svět';
 
   const SUB_TABS = {
-    news:     ['Svět', 'ČR', 'Novoborsko', 'Ekonomika'],
+    news:     ['Svět', 'ČR', 'Novoborsko', 'Ekonomika', 'World Health'],
     radio:    ['Svět', 'ČR'],
     weather:  ['Novoborsko', 'ČR'],
     smart:    ['Okolní senzory', 'Lesy'],
@@ -2087,8 +2085,19 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     if (currentTab === 'news') {
-      if (activeSubTab === 'Ekonomika') renderEkonomika();
-      else renderNews();
+      const nc = document.getElementById('news-container');
+      const sc = document.getElementById('svet-container');
+      if (activeSubTab === 'World Health') {
+        nc.style.display = 'none';
+        sc.style.display = 'block';
+        if (!window.whmLoaded) { window.whmLoaded = true; WHM.init(); }
+        else WHM.refresh();
+      } else {
+        nc.style.display = 'flex';
+        sc.style.display = 'none';
+        if (activeSubTab === 'Ekonomika') renderEkonomika();
+        else renderNews();
+      }
     }
     else if (currentTab === 'radio')   renderRadio();
     else if (currentTab === 'weather') applyWeatherSubTab();
@@ -2138,6 +2147,7 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
 
     if (tab === 'news') {
       document.getElementById('news-container').style.display = 'flex';
+      document.getElementById('svet-container').style.display = 'none';
       renderNews();
     } else if (tab === 'radio') {
       document.getElementById('radio-container').style.display = 'grid';
@@ -2151,10 +2161,6 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     } else if (tab === 'calendar') {
       document.getElementById('calendar-container').style.display = 'flex';
       renderLunarCalendar();
-    } else if (tab === 'svet') { /* WHM */
-      document.getElementById('svet-container').style.display = 'block';
-      if (!window.whmLoaded) { window.whmLoaded = true; WHM.init(); }
-      else WHM.refresh();
     }
   }
 
@@ -2165,8 +2171,8 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     if (currentTab === 'weather') { refreshWeather(); }
     else if (currentTab === 'smart' && activeSubTab === 'Okolní senzory') { srRefresh(); }
     else if (currentTab === 'smart' && activeSubTab === 'Lesy') { setNatureDays(natureDays, document.querySelector('[data-nature-days="'+natureDays+'"]')); }
-    else if (currentTab === 'svet') { if (window.whmLoaded) WHM.refresh(); } /* WHM */
-    else if (currentTab === 'news' && activeSubTab === 'Ekonomika') { financeData = null; renderEkonomika(); } /* Finance */
+    else if (currentTab === 'news' && activeSubTab === 'World Health') { if (window.whmLoaded) WHM.refresh(); }
+    else if (currentTab === 'news' && activeSubTab === 'Ekonomika') { financeData = null; renderEkonomika(); }
     else { refreshData(true); }
   }
 
