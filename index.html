@@ -270,7 +270,10 @@
       display: flex; gap: 30px; padding: 0 40px;
       border-bottom: 1px solid var(--border);
       background: var(--bg);
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; flex-wrap: nowrap;
     }
+    .tabs-nav::-webkit-scrollbar { display: none; }
     .tab-btn {
       background: none; border: none; color: var(--muted);
       font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
@@ -300,6 +303,67 @@
     }
 
     .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; width: 100%; box-sizing: border-box; }
+
+    /* ── EKONOMIKA TAB ── */
+    .eko-section { margin-bottom: 40px; }
+    .eko-section-title {
+      font-size: 13px; font-weight: bold; text-transform: uppercase;
+      letter-spacing: 2px; color: var(--muted);
+      margin-bottom: 14px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .eko-forex-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+    }
+    .eko-forex-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 18px;
+      transition: border-color .2s;
+    }
+    .eko-forex-card:hover { border-color: var(--act); }
+    .eko-forex-pair { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
+    .eko-forex-mid { font-size: 26px; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 6px; }
+    .eko-forex-detail { display: flex; gap: 10px; font-size: 11px; color: var(--muted); }
+    .eko-forex-label { color: var(--muted); }
+    .eko-forex-val { color: var(--text); font-weight: 600; }
+
+    .eko-inflace-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px 24px;
+      display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
+    }
+    .eko-inflace-main { flex-shrink: 0; }
+    .eko-inflace-val { font-size: 52px; font-weight: 800; color: var(--act); line-height: 1; }
+    .eko-inflace-unit { font-size: 18px; color: var(--muted); vertical-align: super; }
+    .eko-inflace-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+    .eko-inflace-chart-wrap { flex: 1; min-width: 200px; height: 80px; }
+
+    .eko-crypto-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .eko-crypto-table th {
+      text-align: left; color: var(--muted); font-size: 10px;
+      text-transform: uppercase; letter-spacing: 1px;
+      padding: 0 8px 10px 8px; border-bottom: 1px solid var(--border);
+      font-weight: bold;
+    }
+    .eko-crypto-table th:not(:first-child) { text-align: right; }
+    .eko-crypto-table td {
+      padding: 10px 8px; border-bottom: 1px solid var(--border);
+      color: var(--text); vertical-align: middle;
+    }
+    .eko-crypto-table td:not(:first-child) { text-align: right; }
+    .eko-crypto-table tr:last-child td { border-bottom: none; }
+    .eko-crypto-table tr:hover td { background: rgba(255,255,255,.03); }
+    .eko-crypto-rank { color: var(--muted); font-size: 11px; min-width: 24px; }
+    .eko-crypto-id { font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+    .eko-change-pos { color: #00e87a; }
+    .eko-change-neg { color: var(--danger); }
+    .eko-change-neu { color: var(--muted); }
+    .eko-ts { font-size: 10px; color: var(--muted); margin-top: 8px; text-align: right; }
+    @media(max-width:600px){
+      .eko-forex-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .eko-crypto-table .eko-col-ath,
+      .eko-crypto-table .eko-col-cap { display: none; }
+    }
 
     /* Theme Buttons */
     .theme-picker { display: flex; gap: 8px; }
@@ -1624,7 +1688,7 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
   let activeSubTab = 'Svět';
 
   const SUB_TABS = {
-    news:     ['Svět', 'ČR', 'Novoborsko'],
+    news:     ['Svět', 'ČR', 'Novoborsko', 'Ekonomika'],
     radio:    ['Svět', 'ČR'],
     weather:  ['Novoborsko', 'ČR'],
     smart:    ['Okolní senzory', 'Lesy'],
@@ -2022,7 +2086,10 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     activeSubTab = subTab;
     document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    if (currentTab === 'news')         renderNews();
+    if (currentTab === 'news') {
+      if (activeSubTab === 'Ekonomika') renderEkonomika();
+      else renderNews();
+    }
     else if (currentTab === 'radio')   renderRadio();
     else if (currentTab === 'weather') applyWeatherSubTab();
     else if (currentTab === 'smart')   applySmartSubTab();
@@ -2099,6 +2166,7 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     else if (currentTab === 'smart' && activeSubTab === 'Okolní senzory') { srRefresh(); }
     else if (currentTab === 'smart' && activeSubTab === 'Lesy') { setNatureDays(natureDays, document.querySelector('[data-nature-days="'+natureDays+'"]')); }
     else if (currentTab === 'svet') { if (window.whmLoaded) WHM.refresh(); } /* WHM */
+    else if (currentTab === 'news' && activeSubTab === 'Ekonomika') { financeData = null; renderEkonomika(); } /* Finance */
     else { refreshData(true); }
   }
 
@@ -3514,6 +3582,166 @@ function renderLunarCalendar() {
 
 <!-- WHM: World Health Monitor — IIFE, žádné globální konflikty -->
 <script>
+/* ═══════════════════════════════════════════════════════════════
+   EKONOMIKA — Finance API (Jouza Finance GAS)
+   ═══════════════════════════════════════════════════════════════ */
+const FINANCE_API_URL = 'https://script.google.com/macros/s/AKfycbztHdn-dYkZDRobN4NVj3l3fmWzay0xzmQ2USMvUlTCq_1wQkKKNg36KJtwLr6jdL4w/exec?format=finance';
+let financeData = null;
+let ekoInflaceChart = null;
+
+async function renderEkonomika() {
+  const container = document.getElementById('news-container');
+  if (!container) return;
+  container.style.display = 'flex';
+  container.innerHTML = '<div class="loading">📊 Načítám finanční data...</div>';
+
+  try {
+    if (!financeData) {
+      const res = await fetch(FINANCE_API_URL);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      financeData = await res.json();
+    }
+    container.innerHTML = '';
+
+    // ── Kurzy měn ──
+    const forexEl = document.createElement('div');
+    forexEl.className = 'eko-section';
+    forexEl.innerHTML = '<div class="eko-section-title">💱 Kurzy měn</div>';
+    const forex = financeData.forex || {};
+    const forexDefs = [
+      { key: 'EURCZK', label: 'EUR / CZK', flag: '🇪🇺' },
+      { key: 'USDCZK', label: 'USD / CZK', flag: '🇺🇸' },
+      { key: 'GBPCZK', label: 'GBP / CZK', flag: '🇬🇧' },
+      { key: 'PLNCZK', label: 'PLN / CZK', flag: '🇵🇱' },
+    ];
+    const forexGrid = document.createElement('div');
+    forexGrid.className = 'eko-forex-grid';
+    forexDefs.forEach(def => {
+      const d = forex[def.key];
+      const mid = d ? d.mid.toFixed(3) : '—';
+      const ask = d ? d.ask.toFixed(3) : '—';
+      const bid = d ? d.bid.toFixed(3) : '—';
+      forexGrid.innerHTML += `
+        <div class="eko-forex-card">
+          <div class="eko-forex-pair">${def.flag} ${def.label}</div>
+          <div class="eko-forex-mid">${mid}</div>
+          <div class="eko-forex-detail">
+            <span><span class="eko-forex-label">Nákup </span><span class="eko-forex-val">${ask}</span></span>
+            <span><span class="eko-forex-label">Prodej </span><span class="eko-forex-val">${bid}</span></span>
+          </div>
+        </div>`;
+    });
+    forexEl.appendChild(forexGrid);
+    container.appendChild(forexEl);
+
+    // ── Inflace ──
+    const inf = financeData.inflation || {};
+    const infEl = document.createElement('div');
+    infEl.className = 'eko-section';
+    infEl.innerHTML = `
+      <div class="eko-section-title">📈 Průměrná roční míra inflace</div>
+      <div class="eko-inflace-card">
+        <div class="eko-inflace-main">
+          <div class="eko-inflace-val">${inf.latest_value != null ? inf.latest_value : '—'}<span class="eko-inflace-unit">%</span></div>
+          <div class="eko-inflace-label">rok ${inf.latest_year || '—'} · zdroj ČSÚ</div>
+        </div>
+        <div class="eko-inflace-chart-wrap">
+          <canvas id="eko-inflace-canvas" role="img" aria-label="Graf inflace 2010–${inf.latest_year}"></canvas>
+        </div>
+      </div>`;
+    container.appendChild(infEl);
+
+    // Inflace sparkline
+    if (inf.history && inf.history.length) {
+      requestAnimationFrame(() => {
+        const canvas = document.getElementById('eko-inflace-canvas');
+        if (!canvas || typeof Chart === 'undefined') return;
+        if (ekoInflaceChart) { ekoInflaceChart.destroy(); ekoInflaceChart = null; }
+        const isDark = !document.body.classList.contains('theme-white');
+        const tickColor = isDark ? 'rgba(255,255,255,.3)' : 'rgba(0,0,0,.3)';
+        ekoInflaceChart = new Chart(canvas.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: inf.history.map(h => h.year),
+            datasets: [{
+              data: inf.history.map(h => h.value),
+              backgroundColor: inf.history.map(h =>
+                h.value > 10 ? 'rgba(255,77,77,.85)' :
+                h.value > 5  ? 'rgba(255,174,0,.75)' :
+                               'rgba(255,174,0,.35)'
+              ),
+              borderRadius: 3,
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            plugins: { legend: { display: false }, tooltip: {
+              callbacks: { label: ctx => ctx.parsed.y + ' %' }
+            }},
+            scales: {
+              x: { ticks: { color: tickColor, font: { size: 9 }, maxRotation: 0 }, grid: { display: false } },
+              y: { ticks: { color: tickColor, font: { size: 9 }, maxTicksLimit: 4, callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,.05)' } }
+            }
+          }
+        });
+      });
+    }
+
+    // ── Krypto ──
+    const crypto = financeData.crypto || {};
+    const items = (crypto.items || []).slice(0, 20);
+    const cryptoEl = document.createElement('div');
+    cryptoEl.className = 'eko-section';
+    cryptoEl.innerHTML = '<div class="eko-section-title">🪙 Krypto — top 20</div>';
+
+    const tbl = document.createElement('table');
+    tbl.className = 'eko-crypto-table';
+    tbl.innerHTML = `<thead><tr>
+      <th>#</th><th>Ticker</th>
+      <th>CZK</th><th>USD</th>
+      <th>24h %</th>
+      <th class="eko-col-cap">Market cap</th>
+    </tr></thead>`;
+
+    const tbody = document.createElement('tbody');
+    items.forEach(c => {
+      const chg = c.change_24h || 0;
+      const chgCls = chg > 0 ? 'eko-change-pos' : chg < 0 ? 'eko-change-neg' : 'eko-change-neu';
+      const chgStr = (chg > 0 ? '+' : '') + chg.toFixed(2) + ' %';
+      const czk = c.price_czk >= 1000
+        ? Math.round(c.price_czk).toLocaleString('cs-CZ') + ' Kč'
+        : c.price_czk.toLocaleString('cs-CZ', { maximumFractionDigits: 4 }) + ' Kč';
+      const usd = c.price_usd >= 1000
+        ? '$' + Math.round(c.price_usd).toLocaleString('en-US')
+        : '$' + c.price_usd.toLocaleString('en-US', { maximumFractionDigits: 4 });
+      const cap = c.market_cap >= 1e12 ? (c.market_cap / 1e12).toFixed(2) + ' T'
+                : c.market_cap >= 1e9  ? (c.market_cap / 1e9).toFixed(1) + ' B'
+                : (c.market_cap / 1e6).toFixed(0) + ' M';
+      tbody.innerHTML += `<tr>
+        <td class="eko-crypto-rank">${c.rank}</td>
+        <td class="eko-crypto-id">${c.id.toUpperCase()}</td>
+        <td>${czk}</td>
+        <td>${usd}</td>
+        <td class="${chgCls}">${chgStr}</td>
+        <td class="eko-col-cap" style="color:var(--muted);font-size:11px">$${cap}</td>
+      </tr>`;
+    });
+    tbl.appendChild(tbody);
+    cryptoEl.appendChild(tbl);
+
+    if (crypto.updated) {
+      const ts = document.createElement('div');
+      ts.className = 'eko-ts';
+      ts.textContent = 'Aktualizováno: ' + new Date(crypto.updated).toLocaleString('cs-CZ');
+      cryptoEl.appendChild(ts);
+    }
+    container.appendChild(cryptoEl);
+
+  } catch(err) {
+    container.innerHTML = `<div class="loading" style="color:var(--danger)">❌ Chyba načítání finančních dat: ${err.message}</div>`;
+  }
+}
+
 const WHM = (function(){
 'use strict';
 
