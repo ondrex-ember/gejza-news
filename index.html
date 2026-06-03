@@ -3941,17 +3941,20 @@ function renderMetrics(scores){
 }
 
 function renderChart(){
-  const canvas=document.getElementById('whm-trend-chart');
-  if(!canvas||typeof Chart==='undefined')return;
-  const now=Date.now();
-  const data=STATE.history.filter(h=>h.ts>=now-STATE.period*86400000);
-  const labels=data.map(h=>{const d=new Date(h.ts);return(d.getMonth()+1)+'/'+d.getDate();});
-  const vals=data.map(h=>h.score);
-  if(whmChartInst){whmChartInst.destroy();whmChartInst=null;}
-  whmChartInst=new Chart(canvas,{
-    type:'line',
-    data:{labels,datasets:[{label:'WDI',data:vals,borderColor:'#38bdf8',borderWidth:2,pointRadius:0,pointHoverRadius:4,pointHoverBackgroundColor:'#38bdf8',fill:true,backgroundColor:(ctx)=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(56,189,248,.15)');g.addColorStop(1,'rgba(56,189,248,0)');return g;},tension:.4}]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:800},interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#161a1f',titleColor:'#666',bodyColor:'#e0e0e0',borderColor:'#24292e',borderWidth:1,callbacks:{label:ctx=>'WDI: '+ctx.parsed.y.toFixed(1)}}},scales:{x:{grid:{color:'rgba(36,41,46,.8)'},ticks:{color:'#3a4450',font:{size:9},maxTicksLimit:8}},y:{min:1,max:12,grid:{color:'rgba(36,41,46,.8)'},ticks:{color:'#3a4450',font:{size:9},stepSize:2}}}},
+  requestAnimationFrame(function(){
+    const canvas=document.getElementById('whm-trend-chart');
+    if(!canvas||typeof Chart==='undefined')return;
+    const now=Date.now();
+    const data=STATE.history.filter(h=>h.ts>=now-STATE.period*86400000);
+    const labels=data.map(h=>{const d=new Date(h.ts);return(d.getMonth()+1)+'/'+d.getDate();});
+    const vals=data.map(h=>h.score);
+    if(whmChartInst){whmChartInst.destroy();whmChartInst=null;}
+    whmChartInst=new Chart(canvas,{
+      type:'line',
+      data:{labels,datasets:[{label:'WDI',data:vals,borderColor:'#38bdf8',borderWidth:2,pointRadius:0,pointHoverRadius:4,pointHoverBackgroundColor:'#38bdf8',fill:true,backgroundColor:(ctx)=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(56,189,248,.15)');g.addColorStop(1,'rgba(56,189,248,0)');return g;},tension:.4}]},
+      options:{responsive:true,maintainAspectRatio:false,animation:{duration:800},interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#161a1f',titleColor:'#666',bodyColor:'#e0e0e0',borderColor:'#24292e',borderWidth:1,callbacks:{label:ctx=>'WDI: '+ctx.parsed.y.toFixed(1)}}},scales:{x:{grid:{color:'rgba(36,41,46,.8)'},ticks:{color:'#3a4450',font:{size:9},maxTicksLimit:8}},y:{min:1,max:12,grid:{color:'rgba(36,41,46,.8)'},ticks:{color:'#3a4450',font:{size:9},stepSize:2}}}},
+    });
+    whmChartInst.resize();
   });
 }
 
