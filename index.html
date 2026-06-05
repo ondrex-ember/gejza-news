@@ -3770,6 +3770,9 @@ const CFG = {
 const STATE = {scores:{},history:[],sources:{},rawData:{},period:7};
 let whmChartInst = null;
 
+// Prices GAS — sdílí exec URL s Finance API
+const WHM_API_BASE = 'https://script.google.com/macros/s/AKfycbztHdn-dYkZDRobN4NVj3l3fmWzay0xzmQ2USMvUlTCq_1wQkKKNg36KJtwLr6jdL4w/exec';
+
 const clamp = (v,a,b) => Math.min(Math.max(v,a),b);
 const linScore = (v,lo,hi,sLo=1,sHi=12) => clamp(sLo+(v-lo)/(hi-lo)*(sHi-sLo),sLo,sHi);
 
@@ -3893,21 +3896,54 @@ function getBadgeLbl(s){if(s<=3)return'NÍZKÉ';if(s<=5)return'STŘEDNÍ';if(s<=
 
 /* ── HISTORY ── */
 const HIST_KEY='jouza_whm_history';
+const HIST_TS_KEY='jouza_whm_history_ts';
+const HIST_TTL=24*60*60*1000; // 24h cache
+
+async function loadHistory(){
+  // 1) Zkus localStorage cache (čerstvá < 24h)
+  try{
+    const cached=localStorage.getItem(HIST_KEY);
+    const cachedTs=parseInt(localStorage.getItem(HIST_TS_KEY)||'0');
+    if(cached && Date.now()-cachedTs < HIST_TTL){
+      const parsed=JSON.parse(cached);
+      if(parsed.length>=5){STATE.history=parsed;return;}
+    }
+  }catch{}
+
+  // 2) Fetch ze Sheets (Prices GAS)
+  try{
+    const res=await fetch(WHM_API_BASE+'?format=whmHistory');
+    const data=await res.json();
+    if(data.history && data.history.length>=5){
+      STATE.history=data.history;
+      localStorage.setItem(HIST_KEY,JSON.stringify(STATE.history));
+      localStorage.setItem(HIST_TS_KEY,Date.now().toString());
+      return;
+    }
+  }catch(e){console.warn('WHM: loadHistory Sheets fetch failed:',e);}
+
+  // 3) Fallback seed (nová instalace / prázdný sheet)
+  const now=Date.now(),DAY=86400000;STATE.history=[];
+  for(let i=29;i>=0;i--){
+    const base=6.2+(29-i)*.025;
+    const noise=Math.sin(i*1.7)*.4+(Math.random()-.5)*.3;
+    STATE.history.push({ts:now-i*DAY,score:Math.round((base+noise)*10)/10,sub:{}});
+  }
+}
+
 function saveHistory(s,sub){
   STATE.history.push({ts:Date.now(),score:s,sub:{...sub}});
   if(STATE.history.length>90)STATE.history=STATE.history.slice(-90);
-  try{localStorage.setItem(HIST_KEY,JSON.stringify(STATE.history));}catch{}
-}
-function loadHistory(){
-  try{const r=localStorage.getItem(HIST_KEY);if(r)STATE.history=JSON.parse(r);}catch{STATE.history=[];}
-  if(STATE.history.length<5){
-    const now=Date.now(),DAY=86400000;STATE.history=[];
-    for(let i=29;i>=0;i--){
-      const base=6.2+(29-i)*.025;
-      const noise=Math.sin(i*1.7)*.4+(Math.random()-.5)*.3;
-      STATE.history.push({ts:now-i*DAY,score:Math.round((base+noise)*10)/10,sub:{}});
-    }
-  }
+  // localStorage s timestampem
+  try{
+    localStorage.setItem(HIST_KEY,JSON.stringify(STATE.history));
+    localStorage.setItem(HIST_TS_KEY,Date.now().toString());
+  }catch{}
+  // Fire-and-forget save do Sheets
+  try{
+    const subStr=encodeURIComponent(JSON.stringify(sub));
+    fetch(WHM_API_BASE+'?format=saveWhmScore&score='+s.toFixed(2)+'&sub='+subStr).catch(()=>{});
+  }catch{}
 }
 
 /* ── RENDERERS ── */
@@ -3941,9 +3977,10 @@ function renderMetrics(scores){
 }
 
 function renderChart(){
-  requestAnimationFrame(function(){
-    const canvas=document.getElementById('whm-trend-chart');
-    if(!canvas||typeof Chart==='undefined')return;
+  const canvas=document.getElementById('whm-trend-chart');
+  if(!canvas||typeof Chart==='undefined')return;
+
+  function doRender(){
     const now=Date.now();
     const data=STATE.history.filter(h=>h.ts>=now-STATE.period*86400000);
     const labels=data.map(h=>{const d=new Date(h.ts);return(d.getMonth()+1)+'/'+d.getDate();});
@@ -3955,7 +3992,16 @@ function renderChart(){
       options:{responsive:true,maintainAspectRatio:false,animation:{duration:800},interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#161a1f',titleColor:'#666',bodyColor:'#e0e0e0',borderColor:'#24292e',borderWidth:1,callbacks:{label:ctx=>'WDI: '+ctx.parsed.y.toFixed(1)}}},scales:{x:{grid:{color:'rgba(36,41,46,.8)'},ticks:{color:'#3a4450',font:{size:9},maxTicksLimit:8}},y:{min:1,max:12,grid:{color:'rgba(36,41,46,.8)'},ticks:{color:'#3a4450',font:{size:9},stepSize:2}}}},
     });
     whmChartInst.resize();
+  }
+
+  // Canvas má rozměry — renderuj okamžitě
+  if(canvas.offsetWidth>0){doRender();return;}
+
+  // Canvas je v hidden containeru — čekej na ResizeObserver
+  const ro=new ResizeObserver(()=>{
+    if(canvas.offsetWidth>0){ro.disconnect();doRender();}
   });
+  ro.observe(canvas.parentElement||canvas);
 }
 
 function renderHotspots(raw){
@@ -4047,12 +4093,13 @@ async function refresh(){
 }
 
 /* ── INIT ── */
-function init(){
-  loadHistory();
+async function init(){
   renderDoomClock();
   renderSources();
   renderMetrics({conflict:0,climate:0,epidemic:0,pollution:0,migration:0,poverty:0,pressFreed:0,authoritarism:0});
-  renderChart();
+
+  await loadHistory(); // Sheets → localStorage → seed
+  renderChart();       // vždy zavolán po načtení dat
 
   document.querySelectorAll('[data-whm-p]').forEach(b=>b.addEventListener('click',()=>{
     document.querySelectorAll('[data-whm-p]').forEach(x=>x.classList.remove('active'));
