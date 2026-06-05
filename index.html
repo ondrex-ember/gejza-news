@@ -1423,6 +1423,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- ════════════════ KALENDÁŘ TAB ════════════════ -->
 <div id="calendar-container" style="display:none; flex-direction:column; gap:0; padding:20px;">
 
+  <!-- Lunární panel — skrývá se při Svátky sub-tabu -->
+  <div id="lunar-panel">
+
   <!-- Moon header -->
   <div class="cal-header">
     <div class="cal-moon-icon" id="cal-moon-icon">🌑</div>
@@ -1469,6 +1472,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
     </div>
   </div>
+
+  </div><!-- /lunar-panel -->
+
+  <!-- Svátky panel — prázdný, plní renderSvatky() -->
+  <div id="svatky-panel" style="display:none; width:100%;"></div>
 
 </div>
 
@@ -2122,8 +2130,16 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     else if (currentTab === 'weather') applyWeatherSubTab();
     else if (currentTab === 'smart')   applySmartSubTab();
     else if (currentTab === 'calendar') {
-      if (activeSubTab === 'Svátky') renderSvatky();
-      else renderLunarCalendar();
+      if (activeSubTab === 'Svátky') {
+        renderSvatky();
+      } else {
+        // Lunární — obnovit lunar-panel, schovat svátky-panel
+        const lp = document.getElementById('lunar-panel');
+        const sp = document.getElementById('svatky-panel');
+        if (lp) lp.style.display = 'block';
+        if (sp) { sp.style.display = 'none'; sp.innerHTML = ''; }
+        renderLunarCalendar();
+      }
     }
   }
 
@@ -3152,6 +3168,12 @@ function renderSvatky() {
   if (!container) return;
   container.style.display = 'flex';
 
+  // Toggle panelů — lunární schovat, svátky zobrazit
+  const lunarPanel  = document.getElementById('lunar-panel');
+  const svatkyPanel = document.getElementById('svatky-panel');
+  if (lunarPanel)  lunarPanel.style.display  = 'none';
+  if (svatkyPanel) svatkyPanel.style.display = 'block';
+
   const now = new Date();
   const todayM = now.getMonth();
   const todayD = now.getDate();
@@ -3161,11 +3183,16 @@ function renderSvatky() {
 
   let html = '<div class="svatky-wrap">';
 
-  SVATKY_DATA.forEach((mesic, mi) => {
+  // Zobraz od aktuálního měsíce, pak následujících 11 (wrap přes rok)
+  for (let i = 0; i < 12; i++) {
+    const mi = (todayM + i) % 12;
+    const mesic = SVATKY_DATA[mi];
     const isCurrentMonth = mi === todayM;
+
     html += `<div class="svatky-month${isCurrentMonth ? ' svatky-month--current' : ''}" id="svatky-m${mi}">
       <div class="svatky-month-title">${nazvy[mi]}</div>
       <div class="svatky-grid">`;
+
     mesic.forEach((jmeno, di) => {
       const den = di + 1;
       const isToday = isCurrentMonth && den === todayD;
@@ -3176,16 +3203,17 @@ function renderSvatky() {
         ${isToday ? '<span class="svatky-cake">🎂</span>' : ''}
       </div>`;
     });
+
     html += '</div></div>';
-  });
+  }
 
   html += '</div>';
-  container.innerHTML = html;
+  if (svatkyPanel) svatkyPanel.innerHTML = html;
 
-  // Scroll na aktuální měsíc
+  // Scroll na začátek (aktuální měsíc je první)
   requestAnimationFrame(() => {
-    const el = document.getElementById('svatky-m' + todayM);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (svatkyPanel) svatkyPanel.scrollTop = 0;
+    container.scrollTop = 0;
   });
 }
 
