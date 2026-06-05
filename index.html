@@ -3762,7 +3762,8 @@ const CFG = {
     {min:11,max:13,label:'KATASTROFICKÉ',color:'#d946ef'},
   ],
   corsProxy:'https://api.allorigins.win/get?url=',
-  refreshMs:5*60*1000,
+  refreshMs:30*60*1000,  // 30 min — sníženo z 5 min
+  sheetsWriteInterval:60*60*1000, // max 1 zápis/hod do Sheets per browser
   doomSec:89,
   doomYear:2025,
 };
@@ -3939,10 +3940,14 @@ function saveHistory(s,sub){
     localStorage.setItem(HIST_KEY,JSON.stringify(STATE.history));
     localStorage.setItem(HIST_TS_KEY,Date.now().toString());
   }catch{}
-  // Fire-and-forget save do Sheets
+  // Fire-and-forget save do Sheets — max 1×/hod per browser
   try{
-    const subStr=encodeURIComponent(JSON.stringify(sub));
-    fetch(WHM_API_BASE+'?format=saveWhmScore&score='+s.toFixed(2)+'&sub='+subStr).catch(()=>{});
+    const lastWrite=parseInt(localStorage.getItem('jouza_whm_last_write')||'0');
+    if(Date.now()-lastWrite > CFG.sheetsWriteInterval){
+      localStorage.setItem('jouza_whm_last_write',Date.now().toString());
+      const subStr=encodeURIComponent(JSON.stringify(sub));
+      fetch(WHM_API_BASE+'?format=saveWhmScore&score='+s.toFixed(2)+'&sub='+subStr).catch(()=>{});
+    }
   }catch{}
 }
 
