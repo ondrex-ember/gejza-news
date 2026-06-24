@@ -3766,23 +3766,31 @@ let _ekoRenderToken = 0;
 let ekoInflaceChart = null;
 const ekoSparkCharts = {};
 
-/* ── Cache helpers ── */
+/* ── Cache helpers — in-memory (nevyžaduje storage permissions) ── */
+const _ekoMemCache = {};
 function _ekoSave(key, data) {
-  try {
-    localStorage.setItem('eko_' + key, JSON.stringify({ ts: Date.now(), data }));
-  } catch(e) {}
+  _ekoMemCache[key] = { ts: Date.now(), data };
+  try { localStorage.setItem('eko_' + key, JSON.stringify({ ts: Date.now(), data })); } catch(e) {}
 }
 function _ekoLoad(key) {
+  // Zkus memory cache nejdřív
+  const mem = _ekoMemCache[key];
+  if (mem && (Date.now() - mem.ts) < EKO_TTL) return mem.data;
+  // Fallback na localStorage
   try {
     const raw = localStorage.getItem('eko_' + key);
     if (!raw) return null;
     const obj = JSON.parse(raw);
-    if (Date.now() - obj.ts > EKO_TTL) return null; // expirováno
+    if (Date.now() - obj.ts > EKO_TTL) return null;
+    _ekoMemCache[key] = obj; // warm memory cache
     return obj.data;
   } catch(e) { return null; }
 }
 function _ekoClearCache() {
-  EKO_KEYS.forEach(k => { try { localStorage.removeItem('eko_' + k); } catch(e) {} });
+  EKO_KEYS.forEach(k => {
+    delete _ekoMemCache[k];
+    try { localStorage.removeItem('eko_' + k); } catch(e) {}
+  });
 }
 
 /* ── renderEkonomika() — orchestrátor ── */
@@ -3956,12 +3964,15 @@ function _ekoDrawInflace(el, token, inf) {
       </div>
     </div>`;
   if (inf.history && inf.history.length) {
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       const canvas = document.getElementById('eko-inflace-canvas');
       if (!canvas || typeof Chart === 'undefined') return;
       if (ekoInflaceChart) { ekoInflaceChart.destroy(); ekoInflaceChart = null; }
       const isDark = !document.body.classList.contains('theme-white');
       const tickColor = isDark ? 'rgba(255,255,255,.3)' : 'rgba(0,0,0,.3)';
+      const wrap = canvas.parentElement;
+      canvas.width  = wrap ? wrap.offsetWidth || 400 : 400;
+      canvas.height = wrap ? wrap.offsetHeight || 80 : 80;
       ekoInflaceChart = new Chart(canvas.getContext('2d'), {
         type: 'bar',
         data: { labels: inf.history.map(h => h.year), datasets: [{
@@ -3970,7 +3981,7 @@ function _ekoDrawInflace(el, token, inf) {
             h.value > 10 ? 'rgba(255,77,77,.85)' :
             h.value > 5  ? 'rgba(255,174,0,.75)' : 'rgba(255,174,0,.35)'),
           borderRadius: 3 }] },
-        options: { responsive: true, maintainAspectRatio: false, animation: false,
+        options: { responsive: false, maintainAspectRatio: false, animation: false,
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.parsed.y + ' %' }}},
           scales: {
             x: { ticks: { color: tickColor, font: { size: 9 }, maxRotation: 0 }, grid: { display: false } },
@@ -3978,7 +3989,7 @@ function _ekoDrawInflace(el, token, inf) {
           }
         }
       });
-    });
+    }, 150);
   }
 }
 
