@@ -2270,7 +2270,7 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     else if (currentTab === 'smart' && activeSubTab === 'Okolní senzory') { srRefresh(); }
     else if (currentTab === 'smart' && activeSubTab === 'Lesy') { setNatureDays(natureDays, document.querySelector('[data-nature-days="'+natureDays+'"]')); }
     else if (currentTab === 'news' && activeSubTab === 'World Health') { if (window.whmLoaded) WHM.refresh(); }
-    else if (currentTab === 'news' && activeSubTab === 'Ekonomika') { renderEkonomika(); }
+    else if (currentTab === 'news' && activeSubTab === 'Ekonomika') { _ekoClearCache(); renderEkonomika(); }
     else { refreshData(true); }
   }
 
@@ -3759,10 +3759,31 @@ function renderLunarCalendar() {
    GAS endpointy: ?format=forex | forexHistory | inflation | crypto
    Každý modul: skeleton → fetch → render (paralelně, nezávisle)
 ═══════════════════════════════════════════════════════════════ */
-const EKO_GAS = 'https://script.google.com/macros/s/AKfycbztHdn-dYkZDRobN4NVj3l3fmWzay0xzmQ2USMvUlTCq_1wQkKKNg36KJtwLr6jdL4w/exec';
-let _ekoRenderToken = 0; // abort token — každý render má unikátní token
+const EKO_GAS   = 'https://script.google.com/macros/s/AKfycbztHdn-dYkZDRobN4NVj3l3fmWzay0xzmQ2USMvUlTCq_1wQkKKNg36KJtwLr6jdL4w/exec';
+const EKO_TTL   = 60 * 60 * 1000; // 60 minut — shoduje se s GAS triggerem
+const EKO_KEYS  = ['forex', 'forexHistory', 'inflation', 'crypto', 'cryptoHero'];
+let _ekoRenderToken = 0;
 let ekoInflaceChart = null;
 const ekoSparkCharts = {};
+
+/* ── Cache helpers ── */
+function _ekoSave(key, data) {
+  try {
+    localStorage.setItem('eko_' + key, JSON.stringify({ ts: Date.now(), data }));
+  } catch(e) {}
+}
+function _ekoLoad(key) {
+  try {
+    const raw = localStorage.getItem('eko_' + key);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (Date.now() - obj.ts > EKO_TTL) return null; // expirováno
+    return obj.data;
+  } catch(e) { return null; }
+}
+function _ekoClearCache() {
+  EKO_KEYS.forEach(k => { try { localStorage.removeItem('eko_' + k); } catch(e) {} });
+}
 
 /* ── renderEkonomika() — orchestrátor ── */
 function renderEkonomika() {
@@ -3803,273 +3824,275 @@ function _ekoSection(id) {
 /* ══ Modul: Kurzy měn ══════════════════════════════════════════ */
 async function _ekoRenderForex(el, token) {
   try {
+    // Cache-first: pokud máme platná data, renderuj okamžitě
+    let forex = _ekoLoad('forex');
+    let hist  = _ekoLoad('forexHistory');
+    if (forex && hist && token === _ekoRenderToken) {
+      _ekoDrawForex(el, token, forex, hist);
+    }
+    // Fetch na pozadí (vždy — aktualizuje cache)
     const [resForex, resHist] = await Promise.all([
       fetch(EKO_GAS + '?format=forex'),
       fetch(EKO_GAS + '?format=forexHistory')
     ]);
-    const forex = resForex.ok ? (await resForex.json()).forex || {} : {};
-    const hist  = resHist.ok  ? await resHist.json() : {};
+    forex = resForex.ok ? (await resForex.json()).forex || {} : (forex || {});
+    hist  = resHist.ok  ? await resHist.json() : (hist || {});
+    if (resForex.ok) _ekoSave('forex', forex);
+    if (resHist.ok)  _ekoSave('forexHistory', hist);
 
-    const forexDefs = [
-      { key: 'EURCZK', label: 'EUR / CZK', flag: '🇪🇺' },
-      { key: 'USDCZK', label: 'USD / CZK', flag: '🇺🇸' },
-      { key: 'GBPCZK', label: 'GBP / CZK', flag: '🇬🇧' },
-      { key: 'PLNCZK', label: 'PLN / CZK', flag: '🇵🇱' },
-    ];
-    const forexDefsSecondary = [
-      { key: 'CNYCZK', label: 'CNY / CZK', flag: '🇨🇳' },
-      { key: 'INRCZK', label: 'INR / CZK', flag: '🇮🇳' },
-      { key: 'BRLCZK', label: 'BRL / CZK', flag: '🇧🇷' },
-      { key: 'RUBCZK', label: 'RUB / CZK', flag: '🇷🇺' },
-    ];
-
-    // Hlavní grid — s canvas pro sparkline
-    let mainHtml = '<div class="eko-forex-grid">';
-    forexDefs.forEach(def => {
-      const d   = forex[def.key];
-      const mid = d ? d.mid.toFixed(3) : '—';
-      const ask = d ? d.ask.toFixed(3) : '—';
-      const bid = d ? d.bid.toFixed(3) : '—';
-      mainHtml += `
-        <div class="eko-forex-card">
-          <div class="eko-forex-pair">${def.flag} ${def.label}</div>
-          <div class="eko-forex-mid">${mid}</div>
-          <div class="eko-forex-detail">
-            <span><span class="eko-forex-label">Nákup </span><span class="eko-forex-val">${ask}</span></span>
-            <span><span class="eko-forex-label">Prodej </span><span class="eko-forex-val">${bid}</span></span>
-          </div>
-          <div class="eko-forex-spark-wrap"><canvas id="spark-${def.key}" width="200" height="40"></canvas></div>
-        </div>`;
-    });
-    mainHtml += '</div>';
-
-    // Sekundární grid
-    let secHtml = '<div class="eko-forex-grid--secondary">';
-    forexDefsSecondary.forEach(def => {
-      const d   = forex[def.key];
-      const mid = d ? d.mid.toFixed(4) : '—';
-      const ask = d ? d.ask.toFixed(4) : '—';
-      const bid = d ? d.bid.toFixed(4) : '—';
-      secHtml += `
-        <div class="eko-forex-card eko-forex-card--secondary">
-          <div class="eko-forex-pair">${def.flag} ${def.label}</div>
-          <div class="eko-forex-mid">${mid}</div>
-          <div class="eko-forex-detail">
-            <span><span class="eko-forex-label">N </span><span class="eko-forex-val">${ask}</span></span>
-            <span><span class="eko-forex-label">P </span><span class="eko-forex-val">${bid}</span></span>
-          </div>
-        </div>`;
-    });
-    secHtml += '</div>';
-
-    if (token !== _ekoRenderToken) return; // stale render — zahoď
-    el.innerHTML = '<div class="eko-section-title">💱 Kurzy měn</div>' + mainHtml + secHtml;
-
-    // Sparklines — fixní rozměry, žádný responsive, kreslíme přímo po innerHTML
-    setTimeout(() => {
-      forexDefs.forEach(def => {
-        const pts = hist[def.key];
-        if (!pts || pts.length < 2) return;
-        const canvas = document.getElementById('spark-' + def.key);
-        if (!canvas || typeof Chart === 'undefined') return;
-        if (ekoSparkCharts[def.key]) { ekoSparkCharts[def.key].destroy(); delete ekoSparkCharts[def.key]; }
-        const vals  = pts.map(p => p.mid);
-        const up    = vals[vals.length - 1] >= vals[0];
-        const color = up ? 'rgba(0,232,122,.8)' : 'rgba(255,77,77,.8)';
-        // Nastav explicitní px rozměry na canvas před Chart.js
-        const wrap = canvas.parentElement;
-        canvas.width  = wrap ? wrap.offsetWidth || 200 : 200;
-        canvas.height = 40;
-        ekoSparkCharts[def.key] = new Chart(canvas.getContext('2d'), {
-          type: 'line',
-          data: {
-            labels: pts.map(p => p.ts),
-            datasets: [{ data: vals, borderColor: color, borderWidth: 1.5,
-              pointRadius: 0, tension: 0.3,
-              fill: true, backgroundColor: up ? 'rgba(0,232,122,.08)' : 'rgba(255,77,77,.08)'
-            }]
-          },
-          options: {
-            responsive: false, maintainAspectRatio: false, animation: false,
-            plugins: { legend: { display: false }, tooltip: { enabled: false } },
-            scales: { x: { display: false }, y: { display: false } }
-          }
-        });
-      });
-    }, 150);
+    _ekoDrawForex(el, token, forex, hist);
 
   } catch(err) {
     el.innerHTML = '<div class="eko-section-title">💱 Kurzy měn</div><div class="eko-loading" style="color:var(--danger)">❌ ' + err.message + '</div>';
   }
 }
 
+/* ── _ekoDrawForex(el, token, forex, hist) ─────────────────── */
+function _ekoDrawForex(el, token, forex, hist) {
+  if (token !== _ekoRenderToken) return;
+  const forexDefs = [
+    { key: 'EURCZK', label: 'EUR / CZK', flag: '🇪🇺' },
+    { key: 'USDCZK', label: 'USD / CZK', flag: '🇺🇸' },
+    { key: 'GBPCZK', label: 'GBP / CZK', flag: '🇬🇧' },
+    { key: 'PLNCZK', label: 'PLN / CZK', flag: '🇵🇱' },
+  ];
+  const forexDefsSecondary = [
+    { key: 'CNYCZK', label: 'CNY / CZK', flag: '🇨🇳' },
+    { key: 'INRCZK', label: 'INR / CZK', flag: '🇮🇳' },
+    { key: 'BRLCZK', label: 'BRL / CZK', flag: '🇧🇷' },
+    { key: 'RUBCZK', label: 'RUB / CZK', flag: '🇷🇺' },
+  ];
+  let mainHtml = '<div class="eko-forex-grid">';
+  forexDefs.forEach(def => {
+    const d = forex[def.key];
+    const mid = d ? d.mid.toFixed(3) : '—';
+    const ask = d ? d.ask.toFixed(3) : '—';
+    const bid = d ? d.bid.toFixed(3) : '—';
+    mainHtml += `
+      <div class="eko-forex-card">
+        <div class="eko-forex-pair">${def.flag} ${def.label}</div>
+        <div class="eko-forex-mid">${mid}</div>
+        <div class="eko-forex-detail">
+          <span><span class="eko-forex-label">Nákup </span><span class="eko-forex-val">${ask}</span></span>
+          <span><span class="eko-forex-label">Prodej </span><span class="eko-forex-val">${bid}</span></span>
+        </div>
+        <div class="eko-forex-spark-wrap"><canvas id="spark-${def.key}" width="200" height="40"></canvas></div>
+      </div>`;
+  });
+  mainHtml += '</div>';
+  let secHtml = '<div class="eko-forex-grid--secondary">';
+  forexDefsSecondary.forEach(def => {
+    const d = forex[def.key];
+    const mid = d ? d.mid.toFixed(4) : '—';
+    const ask = d ? d.ask.toFixed(4) : '—';
+    const bid = d ? d.bid.toFixed(4) : '—';
+    secHtml += `
+      <div class="eko-forex-card eko-forex-card--secondary">
+        <div class="eko-forex-pair">${def.flag} ${def.label}</div>
+        <div class="eko-forex-mid">${mid}</div>
+        <div class="eko-forex-detail">
+          <span><span class="eko-forex-label">N </span><span class="eko-forex-val">${ask}</span></span>
+          <span><span class="eko-forex-label">P </span><span class="eko-forex-val">${bid}</span></span>
+        </div>
+      </div>`;
+  });
+  secHtml += '</div>';
+  el.innerHTML = '<div class="eko-section-title">💱 Kurzy měn</div>' + mainHtml + secHtml;
+  setTimeout(() => {
+    forexDefs.forEach(def => {
+      const pts = hist[def.key];
+      if (!pts || pts.length < 2) return;
+      const canvas = document.getElementById('spark-' + def.key);
+      if (!canvas || typeof Chart === 'undefined') return;
+      if (ekoSparkCharts[def.key]) { ekoSparkCharts[def.key].destroy(); delete ekoSparkCharts[def.key]; }
+      const vals  = pts.map(p => p.mid);
+      const up    = vals[vals.length - 1] >= vals[0];
+      const color = up ? 'rgba(0,232,122,.8)' : 'rgba(255,77,77,.8)';
+      const wrap  = canvas.parentElement;
+      canvas.width  = wrap ? wrap.offsetWidth || 200 : 200;
+      canvas.height = 40;
+      ekoSparkCharts[def.key] = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: { labels: pts.map(p => p.ts), datasets: [{ data: vals, borderColor: color,
+          borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: true,
+          backgroundColor: up ? 'rgba(0,232,122,.08)' : 'rgba(255,77,77,.08)' }] },
+        options: { responsive: false, maintainAspectRatio: false, animation: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: { x: { display: false }, y: { display: false } } }
+      });
+    });
+  }, 150);
+}
+
 /* ══ Modul: Inflace ════════════════════════════════════════════ */
 async function _ekoRenderInflace(el, token) {
   try {
+    let cached = _ekoLoad('inflation');
+    if (cached && token === _ekoRenderToken) _ekoDrawInflace(el, token, cached);
     const res = await fetch(EKO_GAS + '?format=inflation');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     const inf  = data.inflation || {};
+    _ekoSave('inflation', inf);
     if (token !== _ekoRenderToken) return;
-
-    el.innerHTML = `
-      <div class="eko-section-title">📈 Průměrná roční míra inflace</div>
-      <div class="eko-inflace-card">
-        <div class="eko-inflace-main">
-          <div class="eko-inflace-val">${inf.latest_value != null ? inf.latest_value : '—'}<span class="eko-inflace-unit">%</span></div>
-          <div class="eko-inflace-label">rok ${inf.latest_year || '—'} · zdroj ČSÚ</div>
-        </div>
-        <div class="eko-inflace-chart-wrap">
-          <canvas id="eko-inflace-canvas" role="img" aria-label="Graf inflace 2010–${inf.latest_year}"></canvas>
-        </div>
-      </div>`;
-
-    if (inf.history && inf.history.length) {
-      requestAnimationFrame(() => {
-        const canvas = document.getElementById('eko-inflace-canvas');
-        if (!canvas || typeof Chart === 'undefined') return;
-        if (ekoInflaceChart) { ekoInflaceChart.destroy(); ekoInflaceChart = null; }
-        const isDark = !document.body.classList.contains('theme-white');
-        const tickColor = isDark ? 'rgba(255,255,255,.3)' : 'rgba(0,0,0,.3)';
-        ekoInflaceChart = new Chart(canvas.getContext('2d'), {
-          type: 'bar',
-          data: {
-            labels: inf.history.map(h => h.year),
-            datasets: [{
-              data: inf.history.map(h => h.value),
-              backgroundColor: inf.history.map(h =>
-                h.value > 10 ? 'rgba(255,77,77,.85)' :
-                h.value > 5  ? 'rgba(255,174,0,.75)' :
-                               'rgba(255,174,0,.35)'
-              ),
-              borderRadius: 3,
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false, animation: false,
-            plugins: { legend: { display: false }, tooltip: {
-              callbacks: { label: ctx => ctx.parsed.y + ' %' }
-            }},
-            scales: {
-              x: { ticks: { color: tickColor, font: { size: 9 }, maxRotation: 0 }, grid: { display: false } },
-              y: { ticks: { color: tickColor, font: { size: 9 }, maxTicksLimit: 4, callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,.05)' } }
-            }
-          }
-        });
-      });
-    }
+    _ekoDrawInflace(el, token, inf);
   } catch(err) {
     el.innerHTML = '<div class="eko-section-title">📈 Inflace</div><div class="eko-loading" style="color:var(--danger)">❌ ' + err.message + '</div>';
   }
 }
 
-/* ══ Modul: Krypto ═════════════════════════════════════════════ */
+/* ── _ekoDrawInflace ─────────────────────────────────────────── */
+function _ekoDrawInflace(el, token, inf) {
+  if (token !== _ekoRenderToken) return;
+  el.innerHTML = `
+    <div class="eko-section-title">📈 Průměrná roční míra inflace</div>
+    <div class="eko-inflace-card">
+      <div class="eko-inflace-main">
+        <div class="eko-inflace-val">${inf.latest_value != null ? inf.latest_value : '—'}<span class="eko-inflace-unit">%</span></div>
+        <div class="eko-inflace-label">rok ${inf.latest_year || '—'} · zdroj ČSÚ</div>
+      </div>
+      <div class="eko-inflace-chart-wrap">
+        <canvas id="eko-inflace-canvas" role="img" aria-label="Graf inflace 2010–${inf.latest_year}"></canvas>
+      </div>
+    </div>`;
+  if (inf.history && inf.history.length) {
+    requestAnimationFrame(() => {
+      const canvas = document.getElementById('eko-inflace-canvas');
+      if (!canvas || typeof Chart === 'undefined') return;
+      if (ekoInflaceChart) { ekoInflaceChart.destroy(); ekoInflaceChart = null; }
+      const isDark = !document.body.classList.contains('theme-white');
+      const tickColor = isDark ? 'rgba(255,255,255,.3)' : 'rgba(0,0,0,.3)';
+      ekoInflaceChart = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: { labels: inf.history.map(h => h.year), datasets: [{
+          data: inf.history.map(h => h.value),
+          backgroundColor: inf.history.map(h =>
+            h.value > 10 ? 'rgba(255,77,77,.85)' :
+            h.value > 5  ? 'rgba(255,174,0,.75)' : 'rgba(255,174,0,.35)'),
+          borderRadius: 3 }] },
+        options: { responsive: true, maintainAspectRatio: false, animation: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.parsed.y + ' %' }}},
+          scales: {
+            x: { ticks: { color: tickColor, font: { size: 9 }, maxRotation: 0 }, grid: { display: false } },
+            y: { ticks: { color: tickColor, font: { size: 9 }, maxTicksLimit: 4, callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,.05)' } }
+          }
+        }
+      });
+    });
+  }
+}
+
 /* ══ Modul: Hero Krypto ════════════════════════════════════════ */
 async function _ekoRenderHero(el, token) {
   try {
+    let cached = _ekoLoad('cryptoHero');
+    if (cached && token === _ekoRenderToken) _ekoDrawHero(el, token, cached);
     const res = await fetch(EKO_GAS + '?format=cryptoHero');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data  = await res.json();
     const items = data.crypto && data.crypto.items ? data.crypto.items : [];
-
+    _ekoSave('cryptoHero', items);
     if (token !== _ekoRenderToken) return;
-    if (!items.length) {
-      el.innerHTML = '';
-      return;
-    }
-
-    const TICKER_ICONS = {
-      BTC:'₿', ETH:'Ξ', BNB:'⬡', XRP:'◈', SOL:'◎', TRX:'▲'
-    };
-
-    let html = '<div class="eko-section-title">🏆 Hlavní krypto</div><div class="eko-hero-grid">';
-    items.forEach(c => {
-      const chg    = c.change_24h || 0;
-      const chgCls = chg > 0 ? 'eko-hero-chg--pos' : chg < 0 ? 'eko-hero-chg--neg' : 'eko-hero-chg--neu';
-      const chgStr = (chg > 0 ? '+' : '') + chg.toFixed(2) + ' %';
-      const czk    = c.price_czk >= 1000
-        ? Math.round(c.price_czk).toLocaleString('cs-CZ') + ' Kč'
-        : c.price_czk.toLocaleString('cs-CZ', { maximumFractionDigits: 4 }) + ' Kč';
-      const usd    = c.price_usd >= 1000
-        ? '$' + Math.round(c.price_usd).toLocaleString('en-US')
-        : '$' + c.price_usd.toLocaleString('en-US', { maximumFractionDigits: 4 });
-      const cap    = c.market_cap >= 1e12 ? '$' + (c.market_cap / 1e12).toFixed(2) + ' T'
-                   : c.market_cap >= 1e9  ? '$' + (c.market_cap / 1e9).toFixed(1) + ' B'
-                   : '$' + (c.market_cap / 1e6).toFixed(0) + ' M';
-      const icon   = TICKER_ICONS[c.id.toUpperCase()] || '●';
-      html += `
-        <div class="eko-hero-card">
-          <div class="eko-hero-ticker">${icon} ${c.id.toUpperCase()}</div>
-          <div class="eko-hero-price-czk">${czk}</div>
-          <div class="eko-hero-price-usd">${usd}</div>
-          <div class="eko-hero-footer">
-            <span class="eko-hero-cap">cap ${cap}</span>
-            <span class="eko-hero-chg ${chgCls}">${chgStr}</span>
-          </div>
-        </div>`;
-    });
-    html += '</div>';
-    el.innerHTML = html;
-
+    _ekoDrawHero(el, token, items);
   } catch(err) {
     el.innerHTML = '<div class="eko-section-title">🏆 Hlavní krypto</div><div class="eko-loading" style="color:var(--danger)">❌ ' + err.message + '</div>';
   }
 }
 
+/* ── _ekoDrawHero ────────────────────────────────────────────── */
+function _ekoDrawHero(el, token, items) {
+  if (token !== _ekoRenderToken) return;
+  if (!items || !items.length) { el.innerHTML = ''; return; }
+  const TICKER_ICONS = { BTC:'₿', ETH:'Ξ', BNB:'⬡', XRP:'◈', SOL:'◎', TRX:'▲' };
+  let html = '<div class="eko-section-title">🏆 Hlavní krypto</div><div class="eko-hero-grid">';
+  items.forEach(c => {
+    const chg    = c.change_24h || 0;
+    const chgCls = chg > 0 ? 'eko-hero-chg--pos' : chg < 0 ? 'eko-hero-chg--neg' : 'eko-hero-chg--neu';
+    const chgStr = (chg > 0 ? '+' : '') + chg.toFixed(2) + ' %';
+    const czk    = c.price_czk >= 1000
+      ? Math.round(c.price_czk).toLocaleString('cs-CZ') + ' Kč'
+      : c.price_czk.toLocaleString('cs-CZ', { maximumFractionDigits: 4 }) + ' Kč';
+    const usd    = c.price_usd >= 1000
+      ? '$' + Math.round(c.price_usd).toLocaleString('en-US')
+      : '$' + c.price_usd.toLocaleString('en-US', { maximumFractionDigits: 4 });
+    const cap    = c.market_cap >= 1e12 ? '$' + (c.market_cap / 1e12).toFixed(2) + ' T'
+                 : c.market_cap >= 1e9  ? '$' + (c.market_cap / 1e9).toFixed(1) + ' B'
+                 : '$' + (c.market_cap / 1e6).toFixed(0) + ' M';
+    const icon   = TICKER_ICONS[c.id.toUpperCase()] || '●';
+    html += `
+      <div class="eko-hero-card">
+        <div class="eko-hero-ticker">${icon} ${c.id.toUpperCase()}</div>
+        <div class="eko-hero-price-czk">${czk}</div>
+        <div class="eko-hero-price-usd">${usd}</div>
+        <div class="eko-hero-footer">
+          <span class="eko-hero-cap">cap ${cap}</span>
+          <span class="eko-hero-chg ${chgCls}">${chgStr}</span>
+        </div>
+      </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
 async function _ekoRenderKrypto(el, token) {
   try {
+    let cached = _ekoLoad('crypto');
+    if (cached && token === _ekoRenderToken) _ekoDrawKrypto(el, token, cached);
     const res = await fetch(EKO_GAS + '?format=crypto');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data   = await res.json();
     const crypto = data.crypto || {};
+    _ekoSave('crypto', crypto);
     if (token !== _ekoRenderToken) return;
-    const items  = (crypto.items || []).slice(0, 20);
+    _ekoDrawKrypto(el, token, crypto);
 
-    const tbl = document.createElement('table');
-    tbl.className = 'eko-crypto-table';
-    tbl.innerHTML = `<thead><tr>
-      <th>#</th><th>Ticker</th>
-      <th>CZK</th><th>USD</th>
-      <th>24h %</th>
-      <th class="eko-col-cap">Market cap</th>
-    </tr></thead>`;
-
-    const tbody = document.createElement('tbody');
-    items.forEach(c => {
-      const chg    = c.change_24h || 0;
-      const chgCls = chg > 0 ? 'eko-change-pos' : chg < 0 ? 'eko-change-neg' : 'eko-change-neu';
-      const chgStr = (chg > 0 ? '+' : '') + chg.toFixed(2) + ' %';
-      const czk    = c.price_czk >= 1000
-        ? Math.round(c.price_czk).toLocaleString('cs-CZ') + ' Kč'
-        : c.price_czk.toLocaleString('cs-CZ', { maximumFractionDigits: 4 }) + ' Kč';
-      const usd    = c.price_usd >= 1000
-        ? '$' + Math.round(c.price_usd).toLocaleString('en-US')
-        : '$' + c.price_usd.toLocaleString('en-US', { maximumFractionDigits: 4 });
-      const cap    = c.market_cap >= 1e12 ? (c.market_cap / 1e12).toFixed(2) + ' T'
-                   : c.market_cap >= 1e9  ? (c.market_cap / 1e9).toFixed(1) + ' B'
-                   : (c.market_cap / 1e6).toFixed(0) + ' M';
-      tbody.innerHTML += `<tr>
-        <td class="eko-crypto-rank">${c.rank}</td>
-        <td class="eko-crypto-id">${c.id.toUpperCase()}</td>
-        <td>${czk}</td>
-        <td>${usd}</td>
-        <td class="${chgCls}">${chgStr}</td>
-        <td class="eko-col-cap" style="color:var(--muted);font-size:11px">$${cap}</td>
-      </tr>`;
-    });
-    tbl.appendChild(tbody);
-
-    el.innerHTML = '<div class="eko-section-title">🪙 Krypto — top 20</div>';
-    el.appendChild(tbl);
-
-    if (crypto.updated) {
-      const ts = document.createElement('div');
-      ts.className = 'eko-ts';
-      ts.textContent = 'Aktualizováno: ' + new Date(crypto.updated).toLocaleString('cs-CZ');
-      el.appendChild(ts);
-    }
   } catch(err) {
     el.innerHTML = '<div class="eko-section-title">🪙 Krypto</div><div class="eko-loading" style="color:var(--danger)">❌ ' + err.message + '</div>';
+  }
+}
+
+/* ── _ekoDrawKrypto ──────────────────────────────────────────── */
+function _ekoDrawKrypto(el, token, crypto) {
+  if (token !== _ekoRenderToken) return;
+  const items = (crypto.items || []).slice(0, 20);
+  const tbl = document.createElement('table');
+  tbl.className = 'eko-crypto-table';
+  tbl.innerHTML = `<thead><tr>
+    <th>#</th><th>Ticker</th>
+    <th>CZK</th><th>USD</th>
+    <th>24h %</th>
+    <th class="eko-col-cap">Market cap</th>
+  </tr></thead>`;
+  const tbody = document.createElement('tbody');
+  items.forEach(c => {
+    const chg    = c.change_24h || 0;
+    const chgCls = chg > 0 ? 'eko-change-pos' : chg < 0 ? 'eko-change-neg' : 'eko-change-neu';
+    const chgStr = (chg > 0 ? '+' : '') + chg.toFixed(2) + ' %';
+    const czk    = c.price_czk >= 1000
+      ? Math.round(c.price_czk).toLocaleString('cs-CZ') + ' Kč'
+      : c.price_czk.toLocaleString('cs-CZ', { maximumFractionDigits: 4 }) + ' Kč';
+    const usd    = c.price_usd >= 1000
+      ? '$' + Math.round(c.price_usd).toLocaleString('en-US')
+      : '$' + c.price_usd.toLocaleString('en-US', { maximumFractionDigits: 4 });
+    const cap    = c.market_cap >= 1e12 ? (c.market_cap / 1e12).toFixed(2) + ' T'
+                 : c.market_cap >= 1e9  ? (c.market_cap / 1e9).toFixed(1) + ' B'
+                 : (c.market_cap / 1e6).toFixed(0) + ' M';
+    tbody.innerHTML += `<tr>
+      <td class="eko-crypto-rank">${c.rank}</td>
+      <td class="eko-crypto-id">${c.id.toUpperCase()}</td>
+      <td>${czk}</td><td>${usd}</td>
+      <td class="${chgCls}">${chgStr}</td>
+      <td class="eko-col-cap" style="color:var(--muted);font-size:11px">$${cap}</td>
+    </tr>`;
+  });
+  tbl.appendChild(tbody);
+  el.innerHTML = '<div class="eko-section-title">🪙 Krypto — top 20</div>';
+  el.appendChild(tbl);
+  if (crypto.updated) {
+    const ts = document.createElement('div');
+    ts.className = 'eko-ts';
+    ts.textContent = 'Aktualizováno: ' + new Date(crypto.updated).toLocaleString('cs-CZ');
+    el.appendChild(ts);
   }
 }
 
