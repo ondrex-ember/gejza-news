@@ -327,6 +327,23 @@
     .eko-forex-label { color: var(--muted); }
     .eko-forex-val { color: var(--text); font-weight: 600; }
 
+    .eko-forex-grid--secondary {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+      margin-top: 12px;
+    }
+    .eko-forex-card--secondary {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 14px;
+      transition: border-color .2s;
+    }
+    .eko-forex-card--secondary:hover { border-color: var(--act); }
+    .eko-forex-card--secondary .eko-forex-pair { font-size: 10px; margin-bottom: 4px; }
+    .eko-forex-card--secondary .eko-forex-mid { font-size: 18px; margin-bottom: 4px; }
+    .eko-forex-card--secondary .eko-forex-detail { font-size: 10px; }
+    @media(max-width:600px) {
+      .eko-forex-grid--secondary { grid-template-columns: repeat(2, 1fr); }
+    }
+
     .eko-inflace-card {
       background: var(--card); border: 1px solid var(--border);
       border-radius: 10px; padding: 20px 24px;
@@ -3714,6 +3731,8 @@ async function renderEkonomika() {
     forexEl.className = 'eko-section';
     forexEl.innerHTML = '<div class="eko-section-title">💱 Kurzy měn</div>';
     const forex = financeData.forex || {};
+
+    // Hlavní 4 páry — velké karty
     const forexDefs = [
       { key: 'EURCZK', label: 'EUR / CZK', flag: '🇪🇺' },
       { key: 'USDCZK', label: 'USD / CZK', flag: '🇺🇸' },
@@ -3738,6 +3757,32 @@ async function renderEkonomika() {
         </div>`;
     });
     forexEl.appendChild(forexGrid);
+
+    // Sekundární měny — 4 menší karty (ECB/CBR zdroj)
+    const forexDefsSecondary = [
+      { key: 'CNYCZK', label: 'CNY / CZK', flag: '🇨🇳' },
+      { key: 'INRCZK', label: 'INR / CZK', flag: '🇮🇳' },
+      { key: 'BRLCZK', label: 'BRL / CZK', flag: '🇧🇷' },
+      { key: 'RUBCZK', label: 'RUB / CZK', flag: '🇷🇺' },
+    ];
+    const forexGridSecondary = document.createElement('div');
+    forexGridSecondary.className = 'eko-forex-grid--secondary';
+    forexDefsSecondary.forEach(def => {
+      const d = forex[def.key];
+      const mid = d ? d.mid.toFixed(4) : '—';
+      const ask = d ? d.ask.toFixed(4) : '—';
+      const bid = d ? d.bid.toFixed(4) : '—';
+      forexGridSecondary.innerHTML += `
+        <div class="eko-forex-card eko-forex-card--secondary">
+          <div class="eko-forex-pair">${def.flag} ${def.label}</div>
+          <div class="eko-forex-mid">${mid}</div>
+          <div class="eko-forex-detail">
+            <span><span class="eko-forex-label">N </span><span class="eko-forex-val">${ask}</span></span>
+            <span><span class="eko-forex-label">P </span><span class="eko-forex-val">${bid}</span></span>
+          </div>
+        </div>`;
+    });
+    forexEl.appendChild(forexGridSecondary);
     container.appendChild(forexEl);
 
     // ── Inflace ──
