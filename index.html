@@ -3843,33 +3843,45 @@ async function _ekoRenderForex(el) {
 
     el.innerHTML = '<div class="eko-section-title">💱 Kurzy měn</div>' + mainHtml + secHtml;
 
-    // Sparklines — až po renderu DOM
-    requestAnimationFrame(() => {
-      forexDefs.forEach(def => {
-        const pts = hist[def.key];
-        if (!pts || pts.length < 2) return;
-        const canvas = document.getElementById('spark-' + def.key);
-        if (!canvas || typeof Chart === 'undefined') return;
-        if (ekoSparkCharts[def.key]) { ekoSparkCharts[def.key].destroy(); }
-        const vals  = pts.map(p => p.mid);
-        const up    = vals[vals.length - 1] >= vals[0];
-        const color = up ? 'rgba(0,232,122,.8)' : 'rgba(255,77,77,.8)';
-        ekoSparkCharts[def.key] = new Chart(canvas.getContext('2d'), {
-          type: 'line',
-          data: {
-            labels: pts.map(p => p.ts),
-            datasets: [{ data: vals, borderColor: color, borderWidth: 1.5,
-              pointRadius: 0, tension: 0.3,
-              fill: true, backgroundColor: up ? 'rgba(0,232,122,.08)' : 'rgba(255,77,77,.08)'
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false, animation: false,
-            plugins: { legend: { display: false }, tooltip: { enabled: false } },
-            scales: { x: { display: false }, y: { display: false } }
-          }
-        });
+    // Sparklines — ResizeObserver pattern: čeká až má canvas skutečné rozměry
+    function _drawSpark(def, pts) {
+      const canvas = document.getElementById('spark-' + def.key);
+      if (!canvas || typeof Chart === 'undefined') return;
+      if (ekoSparkCharts[def.key]) { ekoSparkCharts[def.key].destroy(); delete ekoSparkCharts[def.key]; }
+      const vals  = pts.map(p => p.mid);
+      const up    = vals[vals.length - 1] >= vals[0];
+      const color = up ? 'rgba(0,232,122,.8)' : 'rgba(255,77,77,.8)';
+      ekoSparkCharts[def.key] = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: pts.map(p => p.ts),
+          datasets: [{ data: vals, borderColor: color, borderWidth: 1.5,
+            pointRadius: 0, tension: 0.3,
+            fill: true, backgroundColor: up ? 'rgba(0,232,122,.08)' : 'rgba(255,77,77,.08)'
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: { x: { display: false }, y: { display: false } }
+        }
       });
+    }
+
+    forexDefs.forEach(def => {
+      const pts = hist[def.key];
+      if (!pts || pts.length < 2) return;
+      // ResizeObserver: inicializuj až má wrap skutečné rozměry
+      const wrap = el.querySelector('#spark-' + def.key + '')?.parentElement;
+      if (!wrap) { setTimeout(() => _drawSpark(def, pts), 100); return; }
+      const ro = new ResizeObserver((entries, observer) => {
+        const entry = entries[0];
+        if (entry.contentRect.width > 0) {
+          observer.disconnect();
+          _drawSpark(def, pts);
+        }
+      });
+      ro.observe(wrap);
     });
 
   } catch(err) {
