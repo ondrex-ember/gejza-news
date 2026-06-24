@@ -326,7 +326,7 @@
     .eko-forex-detail { display: flex; gap: 10px; font-size: 11px; color: var(--muted); }
     .eko-forex-label { color: var(--muted); }
     .eko-forex-val { color: var(--text); font-weight: 600; }
-    .eko-forex-spark-wrap { margin-top: 8px; height: 40px; }
+    .eko-forex-spark-wrap { margin-top: 8px; height: 40px; width: 100%; display: block; }
     .eko-loading { padding: 20px; opacity: .4; font-size: 13px; }
 
     .eko-forex-grid--secondary {
@@ -2232,9 +2232,21 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     renderSubTabs(tab);
 
     if (tab === 'news') {
-      document.getElementById('news-container').style.display = 'flex';
-      document.getElementById('svet-container').style.display = 'none';
-      renderNews();
+      // Obnov správný subtab místo vždy renderNews()
+      if (activeSubTab === 'Ekonomika') {
+        document.getElementById('news-container').style.display = 'flex';
+        document.getElementById('svet-container').style.display = 'none';
+        renderEkonomika();
+      } else if (activeSubTab === 'World Health') {
+        document.getElementById('news-container').style.display = 'none';
+        document.getElementById('svet-container').style.display = 'block';
+        if (!window.whmLoaded) { window.whmLoaded = true; WHM.init(); }
+        else WHM.refresh();
+      } else {
+        document.getElementById('news-container').style.display = 'flex';
+        document.getElementById('svet-container').style.display = 'none';
+        renderNews();
+      }
     } else if (tab === 'radio') {
       document.getElementById('radio-container').style.display = 'grid';
       renderRadio();
@@ -3819,7 +3831,7 @@ async function _ekoRenderForex(el) {
             <span><span class="eko-forex-label">Nákup </span><span class="eko-forex-val">${ask}</span></span>
             <span><span class="eko-forex-label">Prodej </span><span class="eko-forex-val">${bid}</span></span>
           </div>
-          <div class="eko-forex-spark-wrap"><canvas id="spark-${def.key}" height="40"></canvas></div>
+          <div class="eko-forex-spark-wrap"><canvas id="spark-${def.key}" width="200" height="40"></canvas></div>
         </div>`;
     });
     mainHtml += '</div>';
@@ -3845,46 +3857,38 @@ async function _ekoRenderForex(el) {
 
     el.innerHTML = '<div class="eko-section-title">💱 Kurzy měn</div>' + mainHtml + secHtml;
 
-    // Sparklines — ResizeObserver pattern: čeká až má canvas skutečné rozměry
-    function _drawSpark(def, pts) {
-      const canvas = document.getElementById('spark-' + def.key);
-      if (!canvas || typeof Chart === 'undefined') return;
-      if (ekoSparkCharts[def.key]) { ekoSparkCharts[def.key].destroy(); delete ekoSparkCharts[def.key]; }
-      const vals  = pts.map(p => p.mid);
-      const up    = vals[vals.length - 1] >= vals[0];
-      const color = up ? 'rgba(0,232,122,.8)' : 'rgba(255,77,77,.8)';
-      ekoSparkCharts[def.key] = new Chart(canvas.getContext('2d'), {
-        type: 'line',
-        data: {
-          labels: pts.map(p => p.ts),
-          datasets: [{ data: vals, borderColor: color, borderWidth: 1.5,
-            pointRadius: 0, tension: 0.3,
-            fill: true, backgroundColor: up ? 'rgba(0,232,122,.08)' : 'rgba(255,77,77,.08)'
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false, animation: false,
-          plugins: { legend: { display: false }, tooltip: { enabled: false } },
-          scales: { x: { display: false }, y: { display: false } }
-        }
+    // Sparklines — fixní rozměry, žádný responsive, kreslíme přímo po innerHTML
+    setTimeout(() => {
+      forexDefs.forEach(def => {
+        const pts = hist[def.key];
+        if (!pts || pts.length < 2) return;
+        const canvas = document.getElementById('spark-' + def.key);
+        if (!canvas || typeof Chart === 'undefined') return;
+        if (ekoSparkCharts[def.key]) { ekoSparkCharts[def.key].destroy(); delete ekoSparkCharts[def.key]; }
+        const vals  = pts.map(p => p.mid);
+        const up    = vals[vals.length - 1] >= vals[0];
+        const color = up ? 'rgba(0,232,122,.8)' : 'rgba(255,77,77,.8)';
+        // Nastav explicitní px rozměry na canvas před Chart.js
+        const wrap = canvas.parentElement;
+        canvas.width  = wrap ? wrap.offsetWidth || 200 : 200;
+        canvas.height = 40;
+        ekoSparkCharts[def.key] = new Chart(canvas.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: pts.map(p => p.ts),
+            datasets: [{ data: vals, borderColor: color, borderWidth: 1.5,
+              pointRadius: 0, tension: 0.3,
+              fill: true, backgroundColor: up ? 'rgba(0,232,122,.08)' : 'rgba(255,77,77,.08)'
+            }]
+          },
+          options: {
+            responsive: false, maintainAspectRatio: false, animation: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            scales: { x: { display: false }, y: { display: false } }
+          }
+        });
       });
-    }
-
-    forexDefs.forEach(def => {
-      const pts = hist[def.key];
-      if (!pts || pts.length < 2) return;
-      // ResizeObserver: inicializuj až má wrap skutečné rozměry
-      const wrap = el.querySelector('#spark-' + def.key + '')?.parentElement;
-      if (!wrap) { setTimeout(() => _drawSpark(def, pts), 100); return; }
-      const ro = new ResizeObserver((entries, observer) => {
-        const entry = entries[0];
-        if (entry.contentRect.width > 0) {
-          observer.disconnect();
-          _drawSpark(def, pts);
-        }
-      });
-      ro.observe(wrap);
-    });
+    }, 150);
 
   } catch(err) {
     el.innerHTML = '<div class="eko-section-title">💱 Kurzy měn</div><div class="eko-loading" style="color:var(--danger)">❌ ' + err.message + '</div>';
@@ -4101,7 +4105,7 @@ async function fetchXML(url){
 
 async function fetchConflict(){
   try{
-    const d=await safeFetch('https://api.reliefweb.int/v1/disasters?appname=jouza-whm&limit=20&filter[field]=status&filter[value]=alert');
+    const d=await safeFetch('https://api.reliefweb.int/v2/disasters?appname=jouza-whm&preset=external&limit=20&filter[field]=status&filter[value]=alert');
     STATE.sources.conflict='ok';
     return{activeDisasters:d.data?.length||0,items:d.data||[]};
   }catch{
@@ -4301,22 +4305,19 @@ function renderChart(){
     const labels=data.map(h=>{const d=new Date(h.ts);return(d.getMonth()+1)+'/'+d.getDate();});
     const vals=data.map(h=>h.score);
     if(whmChartInst){whmChartInst.destroy();whmChartInst=null;}
+    // Nastav explicitní px rozměry — obchází hidden container problém
+    const wrap=canvas.parentElement;
+    if(wrap&&wrap.offsetWidth>0){canvas.width=wrap.offsetWidth;canvas.height=wrap.offsetHeight||160;}
     whmChartInst=new Chart(canvas,{
       type:'line',
       data:{labels,datasets:[{label:'WDI',data:vals,borderColor:'#38bdf8',borderWidth:2,pointRadius:0,pointHoverRadius:4,pointHoverBackgroundColor:'#38bdf8',fill:true,backgroundColor:(ctx)=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(56,189,248,.15)');g.addColorStop(1,'rgba(56,189,248,0)');return g;},tension:.4}]},
-      options:{responsive:true,maintainAspectRatio:false,animation:{duration:800},interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#161a1f',titleColor:'#666',bodyColor:'#e0e0e0',borderColor:'#24292e',borderWidth:1,callbacks:{label:ctx=>'WDI: '+ctx.parsed.y.toFixed(1)}}},scales:{x:{grid:{color:'rgba(36,41,46,.8)'},ticks:{color:'#3a4450',font:{size:9},maxTicksLimit:8}},y:{min:1,max:12,grid:{color:'rgba(36,41,46,.8)'},ticks:{color:'#3a4450',font:{size:9},stepSize:2}}}},
+      options:{responsive:false,maintainAspectRatio:false,animation:{duration:800},interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#161a1f',titleColor:'#666',bodyColor:'#e0e0e0',borderColor:'#24292e',borderWidth:1,callbacks:{label:ctx=>'WDI: '+ctx.parsed.y.toFixed(1)}}},scales:{x:{grid:{color:'rgba(36,41,46,.8)'},ticks:{color:'#3a4450',font:{size:9},maxTicksLimit:8}},y:{min:1,max:12,grid:{color:'rgba(36,41,46,.8)'},ticks:{color:'#3a4450',font:{size:9},stepSize:2}}}},
     });
-    whmChartInst.resize();
   }
 
-  // Canvas má rozměry — renderuj okamžitě
+  // Pokus o okamžitý render, fallback setTimeout
   if(canvas.offsetWidth>0){doRender();return;}
-
-  // Canvas je v hidden containeru — čekej na ResizeObserver
-  const ro=new ResizeObserver(()=>{
-    if(canvas.offsetWidth>0){ro.disconnect();doRender();}
-  });
-  ro.observe(canvas.parentElement||canvas);
+  setTimeout(()=>{doRender();},200);
 }
 
 function renderHotspots(raw){
