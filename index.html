@@ -3757,6 +3757,7 @@ function renderLunarCalendar() {
    Každý modul: skeleton → fetch → render (paralelně, nezávisle)
 ═══════════════════════════════════════════════════════════════ */
 const EKO_GAS = 'https://script.google.com/macros/s/AKfycbztHdn-dYkZDRobN4NVj3l3fmWzay0xzmQ2USMvUlTCq_1wQkKKNg36KJtwLr6jdL4w/exec';
+let _ekoRenderToken = 0; // abort token — každý render má unikátní token
 let ekoInflaceChart = null;
 const ekoSparkCharts = {};
 
@@ -3768,6 +3769,9 @@ function renderEkonomika() {
   container.classList.add('eko-mode');
   container.innerHTML = '';
 
+  // Nový token — zruší výsledky předchozích běžících fetchů
+  const token = ++_ekoRenderToken;
+
   // Vytvoř sekce (placeholdery) — pořadí je fixní
   const secForex   = _ekoSection('eko-sec-forex');
   const secInflace = _ekoSection('eko-sec-inflace');
@@ -3778,11 +3782,11 @@ function renderEkonomika() {
   container.appendChild(secHero);
   container.appendChild(secKrypto);
 
-  // Spusť moduly paralelně
-  _ekoRenderForex(secForex);
-  _ekoRenderInflace(secInflace);
-  _ekoRenderHero(secHero);
-  _ekoRenderKrypto(secKrypto);
+  // Spusť moduly paralelně — každý dostane token
+  _ekoRenderForex(secForex, token);
+  _ekoRenderInflace(secInflace, token);
+  _ekoRenderHero(secHero, token);
+  _ekoRenderKrypto(secKrypto, token);
 }
 
 function _ekoSection(id) {
@@ -3794,7 +3798,7 @@ function _ekoSection(id) {
 }
 
 /* ══ Modul: Kurzy měn ══════════════════════════════════════════ */
-async function _ekoRenderForex(el) {
+async function _ekoRenderForex(el, token) {
   try {
     const [resForex, resHist] = await Promise.all([
       fetch(EKO_GAS + '?format=forex'),
@@ -3855,6 +3859,7 @@ async function _ekoRenderForex(el) {
     });
     secHtml += '</div>';
 
+    if (token !== _ekoRenderToken) return; // stale render — zahoď
     el.innerHTML = '<div class="eko-section-title">💱 Kurzy měn</div>' + mainHtml + secHtml;
 
     // Sparklines — fixní rozměry, žádný responsive, kreslíme přímo po innerHTML
@@ -3896,12 +3901,13 @@ async function _ekoRenderForex(el) {
 }
 
 /* ══ Modul: Inflace ════════════════════════════════════════════ */
-async function _ekoRenderInflace(el) {
+async function _ekoRenderInflace(el, token) {
   try {
     const res = await fetch(EKO_GAS + '?format=inflation');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     const inf  = data.inflation || {};
+    if (token !== _ekoRenderToken) return;
 
     el.innerHTML = `
       <div class="eko-section-title">📈 Průměrná roční míra inflace</div>
@@ -3956,13 +3962,14 @@ async function _ekoRenderInflace(el) {
 
 /* ══ Modul: Krypto ═════════════════════════════════════════════ */
 /* ══ Modul: Hero Krypto ════════════════════════════════════════ */
-async function _ekoRenderHero(el) {
+async function _ekoRenderHero(el, token) {
   try {
     const res = await fetch(EKO_GAS + '?format=cryptoHero');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data  = await res.json();
     const items = data.crypto && data.crypto.items ? data.crypto.items : [];
 
+    if (token !== _ekoRenderToken) return;
     if (!items.length) {
       el.innerHTML = '';
       return;
@@ -4006,12 +4013,13 @@ async function _ekoRenderHero(el) {
   }
 }
 
-async function _ekoRenderKrypto(el) {
+async function _ekoRenderKrypto(el, token) {
   try {
     const res = await fetch(EKO_GAS + '?format=crypto');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data   = await res.json();
     const crypto = data.crypto || {};
+    if (token !== _ekoRenderToken) return;
     const items  = (crypto.items || []).slice(0, 20);
 
     const tbl = document.createElement('table');
