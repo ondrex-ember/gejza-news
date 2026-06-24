@@ -305,7 +305,7 @@
     .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; width: 100%; box-sizing: border-box; }
 
     /* ── EKONOMIKA TAB ── */
-    .eko-section { margin-bottom: 40px; }
+    .eko-section { margin-bottom: 16px; }
     .eko-section-title {
       font-size: 13px; font-weight: bold; text-transform: uppercase;
       letter-spacing: 2px; color: var(--muted);
@@ -418,6 +418,7 @@
 
     /* NEWS GRID */
     #news-container { display: flex; flex-direction: column; gap: 50px; }
+    #news-container.eko-mode { gap: 16px; }
     .feed-section-title { font-size: 22px; font-weight: bold; margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
     .feed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     .news-item { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; transition: transform 0.2s; }
@@ -3752,6 +3753,7 @@ function renderEkonomika() {
   const container = document.getElementById('news-container');
   if (!container) return;
   container.style.display = 'flex';
+  container.classList.add('eko-mode');
   container.innerHTML = '';
 
   // Vytvoř sekce (placeholdery) — pořadí je fixní
