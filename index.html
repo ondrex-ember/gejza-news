@@ -2311,9 +2311,12 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
       const response = await fetch(githubRawUrl + cacheBuster);
       const newData = await response.json();
       appData = newData;
-      renderNews();
+      // Nepřepisuj Ekonomiku nebo WHM při auto-refreshi
+      if (!(currentTab === 'news' && (activeSubTab === 'Ekonomika' || activeSubTab === 'World Health'))) {
+        renderNews();
+      }
       renderRadio();
-	  if (window.natureLoaded) renderNature();
+      if (window.natureLoaded) renderNature();
     } catch (err) {
       console.error('Chyba při obnově dat:', err);
     } finally {
