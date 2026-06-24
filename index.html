@@ -357,6 +357,34 @@
     .eko-inflace-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
     .eko-inflace-chart-wrap { flex: 1; min-width: 200px; height: 80px; }
 
+    .eko-hero-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+      margin-bottom: 14px;
+    }
+    .eko-hero-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px 20px;
+      transition: border-color .2s; position: relative;
+    }
+    .eko-hero-card:hover { border-color: var(--act); }
+    .eko-hero-ticker {
+      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 2px; color: var(--muted); margin-bottom: 6px;
+    }
+    .eko-hero-price-czk { font-size: 22px; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 3px; }
+    .eko-hero-price-usd { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    .eko-hero-footer { display: flex; justify-content: space-between; align-items: center; }
+    .eko-hero-cap { font-size: 10px; color: var(--muted); }
+    .eko-hero-chg {
+      font-size: 11px; font-weight: 700; padding: 2px 7px;
+      border-radius: 20px; display: inline-block;
+    }
+    .eko-hero-chg--pos { background: rgba(0,232,122,.15); color: #00e87a; }
+    .eko-hero-chg--neg { background: rgba(255,77,77,.15); color: var(--danger); }
+    .eko-hero-chg--neu { background: rgba(255,255,255,.07); color: var(--muted); }
+    @media(max-width:700px) { .eko-hero-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media(max-width:400px) { .eko-hero-grid { grid-template-columns: 1fr 1fr; gap: 10px; } }
+
     .eko-crypto-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .eko-crypto-table th {
       text-align: left; color: var(--muted); font-size: 10px;
@@ -3729,14 +3757,17 @@ function renderEkonomika() {
   // Vytvoř sekce (placeholdery) — pořadí je fixní
   const secForex   = _ekoSection('eko-sec-forex');
   const secInflace = _ekoSection('eko-sec-inflace');
+  const secHero    = _ekoSection('eko-sec-hero');
   const secKrypto  = _ekoSection('eko-sec-krypto');
   container.appendChild(secForex);
   container.appendChild(secInflace);
+  container.appendChild(secHero);
   container.appendChild(secKrypto);
 
   // Spusť moduly paralelně
   _ekoRenderForex(secForex);
   _ekoRenderInflace(secInflace);
+  _ekoRenderHero(secHero);
   _ekoRenderKrypto(secKrypto);
 }
 
@@ -3906,6 +3937,57 @@ async function _ekoRenderInflace(el) {
 }
 
 /* ══ Modul: Krypto ═════════════════════════════════════════════ */
+/* ══ Modul: Hero Krypto ════════════════════════════════════════ */
+async function _ekoRenderHero(el) {
+  try {
+    const res = await fetch(EKO_GAS + '?format=cryptoHero');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data  = await res.json();
+    const items = data.crypto && data.crypto.items ? data.crypto.items : [];
+
+    if (!items.length) {
+      el.innerHTML = '';
+      return;
+    }
+
+    const TICKER_ICONS = {
+      BTC:'₿', ETH:'Ξ', BNB:'⬡', XRP:'◈', SOL:'◎', TRX:'▲'
+    };
+
+    let html = '<div class="eko-section-title">🏆 Hlavní krypto</div><div class="eko-hero-grid">';
+    items.forEach(c => {
+      const chg    = c.change_24h || 0;
+      const chgCls = chg > 0 ? 'eko-hero-chg--pos' : chg < 0 ? 'eko-hero-chg--neg' : 'eko-hero-chg--neu';
+      const chgStr = (chg > 0 ? '+' : '') + chg.toFixed(2) + ' %';
+      const czk    = c.price_czk >= 1000
+        ? Math.round(c.price_czk).toLocaleString('cs-CZ') + ' Kč'
+        : c.price_czk.toLocaleString('cs-CZ', { maximumFractionDigits: 4 }) + ' Kč';
+      const usd    = c.price_usd >= 1000
+        ? '$' + Math.round(c.price_usd).toLocaleString('en-US')
+        : '$' + c.price_usd.toLocaleString('en-US', { maximumFractionDigits: 4 });
+      const cap    = c.market_cap >= 1e12 ? '$' + (c.market_cap / 1e12).toFixed(2) + ' T'
+                   : c.market_cap >= 1e9  ? '$' + (c.market_cap / 1e9).toFixed(1) + ' B'
+                   : '$' + (c.market_cap / 1e6).toFixed(0) + ' M';
+      const icon   = TICKER_ICONS[c.id.toUpperCase()] || '●';
+      html += `
+        <div class="eko-hero-card">
+          <div class="eko-hero-ticker">${icon} ${c.id.toUpperCase()}</div>
+          <div class="eko-hero-price-czk">${czk}</div>
+          <div class="eko-hero-price-usd">${usd}</div>
+          <div class="eko-hero-footer">
+            <span class="eko-hero-cap">cap ${cap}</span>
+            <span class="eko-hero-chg ${chgCls}">${chgStr}</span>
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+    el.innerHTML = html;
+
+  } catch(err) {
+    el.innerHTML = '<div class="eko-section-title">🏆 Hlavní krypto</div><div class="eko-loading" style="color:var(--danger)">❌ ' + err.message + '</div>';
+  }
+}
+
 async function _ekoRenderKrypto(el) {
   try {
     const res = await fetch(EKO_GAS + '?format=crypto');
