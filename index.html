@@ -413,8 +413,11 @@
     }
 
     /* Theme Buttons */
-    .theme-picker { display: flex; gap: 8px; }
+    .theme-picker { display: flex; gap: 8px; align-items: center; }
     .t-btn { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); cursor: pointer; }
+    .t-btn-refresh { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border); cursor: pointer; background: transparent; color: var(--muted); font-size: 13px; display: flex; align-items: center; justify-content: center; transition: border-color .2s, color .2s; padding: 0; line-height: 1; }
+    .t-btn-refresh:hover { border-color: var(--act); color: var(--text); }
+    .t-btn-refresh.spin { animation: pulse 1s infinite; opacity: 0.5; pointer-events: none; }
 
     /* NEWS GRID */
     #news-container { display: flex; flex-direction: column; gap: 50px; }
@@ -1202,10 +1205,14 @@
   }
   .cal-lunar-entry { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
 
-  /* 5-tab nav — horizontal scroll on narrow screens */
+  /* 5-tab nav — kompaktní na úzkých displejích */
   @media (max-width: 500px) {
-    .tabs-nav > div:first-child { gap: 18px; }
-    .tab-btn { font-size: 12px; }
+    .tabs-nav { padding: 0 12px; gap: 0; justify-content: space-between; }
+    .tabs-nav > div:first-child { gap: 0; flex: 1; justify-content: space-between; }
+    .tab-btn { font-size: 10px; letter-spacing: 0.5px; padding: 12px 4px; }
+  }
+  @media (max-width: 380px) {
+    .tab-btn { font-size: 9px; letter-spacing: 0; padding: 12px 2px; }
   }
 
 
@@ -1358,22 +1365,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <canvas class="hdr-analog" id="hdr-analog" width="130" height="130" style="display:none;"></canvas>
     </div>
 
-    <!-- MOBILE ONLY: téma pod hodinami -->
+    <!-- MOBILE ONLY: téma + refresh pod hodinami -->
     <div class="theme-picker-mobile">
       <div class="t-btn" data-theme="dark"  style="background:#0f1115;" onclick="setTheme('dark')"></div>
       <div class="t-btn" data-theme="white" style="background:#ffffff;" onclick="setTheme('white')"></div>
       <div class="t-btn" data-theme="blue"  style="background:#0a192f;" onclick="setTheme('blue')"></div>
       <div class="t-btn" data-theme="red"   style="background:#1a0a0a;" onclick="setTheme('red')"></div>
+      <button class="t-btn-refresh" onclick="onRefreshClick()" title="Obnovit">🔄</button>
     </div>
 
   </div>
 
-  <!-- RIGHT: THEME PICKER -->
+  <!-- RIGHT: THEME PICKER + REFRESH -->
   <div class="theme-picker">
     <div class="t-btn" data-theme="dark"  style="background:#0f1115;" onclick="setTheme('dark')"></div>
     <div class="t-btn" data-theme="white" style="background:#ffffff;" onclick="setTheme('white')"></div>
     <div class="t-btn" data-theme="blue"  style="background:#0a192f;" onclick="setTheme('blue')"></div>
     <div class="t-btn" data-theme="red"   style="background:#1a0a0a;" onclick="setTheme('red')"></div>
+    <button class="t-btn-refresh" id="refresh-btn" onclick="onRefreshClick()" title="Obnovit">🔄</button>
   </div>
 </header>
 
@@ -1398,7 +1407,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <button class="tab-btn" onclick="switchTab('smart', this)">Smart</button>
     <button class="tab-btn" onclick="switchTab('calendar', this)">Kalendář</button>
   </div>
-  <button class="btn-refresh" id="refresh-btn" onclick="onRefreshClick()">🔄 Obnovit</button>
 </div>
 <div class="subtabs-nav" id="subtabs-nav"></div>
 
@@ -2307,15 +2315,20 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     else { refreshData(true); }
   }
 
+  function _allRefreshBtns() { return document.querySelectorAll('.t-btn-refresh, #refresh-btn'); }
+  function _refreshBtnSpin(on) {
+    _allRefreshBtns().forEach(b => {
+      if (on) { b.classList.add('spin'); b.textContent = '⏳'; }
+      else    { b.classList.remove('spin'); b.textContent = '🔄'; }
+    });
+  }
+
   async function refreshWeather() {
-    const btn = document.getElementById('refresh-btn');
-    if (btn) { btn.classList.add('spin'); btn.innerText = '⏳ Načítám...'; }
+    _refreshBtnSpin(true);
     const container = document.getElementById('weather-container');
     if (container) container.innerHTML = '<div class="weather-skeleton"><div class="weather-loading-text">⛅ Aktualizuji data o počasí...</div></div>';
-
     await loadWeather();
-
-    if (btn) { btn.classList.remove('spin'); btn.innerText = '🔄 Obnovit'; }
+    _refreshBtnSpin(false);
   }
 
   /* =========================================================
@@ -2336,8 +2349,7 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
   }
 
   async function refreshData(isManual = false) {
-    const btn = document.getElementById('refresh-btn');
-    if (isManual && btn) { btn.classList.add('spin'); btn.innerText = '⏳ Načítám...'; }
+    if (isManual) _refreshBtnSpin(true);
     try {
       const githubRawUrl = 'https://raw.githubusercontent.com/ondrex-ember/gejza-news/main/data.json';
       const cacheBuster = '?v=' + new Date().getTime();
@@ -2353,7 +2365,7 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     } catch (err) {
       console.error('Chyba při obnově dat:', err);
     } finally {
-      if (isManual && btn) { btn.classList.remove('spin'); btn.innerText = '🔄 Obnovit'; }
+      if (isManual) _refreshBtnSpin(false);
     }
   }
 
@@ -2850,10 +2862,9 @@ async function srLoadDoprava() {
  
 /* ── Refresh ──────────────────────────────────────────────────── */
 function srRefresh() {
-  const btn=document.getElementById('refresh-btn');
-  if (btn){btn.classList.add('spin');btn.innerText='⏳ Načítám...';}
+  _refreshBtnSpin(true);
   srFetch(srDays, srGran).finally(()=>{
-    if (btn){btn.classList.remove('spin');btn.innerText='🔄 Obnovit';}
+    _refreshBtnSpin(false);
   });
   srLoadDoprava();
 }
