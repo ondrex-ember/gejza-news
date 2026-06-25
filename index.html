@@ -1314,8 +1314,14 @@
     .hdr-analog  { width: 80px !important; height: 80px !important; }
     .hdr-date    { font-size: 9px; letter-spacing: 1px; }
     .hdr-meta    { font-size: 11px; }
-    header       { padding: 12px 16px; }
+    header       { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+    /* Téma schovej vpravo nahoře — přesuneme do hdr-centre */
+    header > .theme-picker { display: none; }
+    /* hdr-centre přidá téma pod hodiny */
+    .hdr-centre  { flex-direction: column; align-items: center; gap: 6px; }
+    .hdr-centre .theme-picker-mobile { display: flex !important; }
   }
+  .hdr-centre .theme-picker-mobile { display: none; gap: 8px; }
 
   </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1341,7 +1347,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     </div>
   </div>
 
-  <!-- CENTRE WIDGET: CLOCK ONLY -->
+  <!-- CENTRE WIDGET: CLOCK + MOBILE THEME -->
   <div class="hdr-centre">
 
     <!-- CLOCK — klik přepíná digital/analog -->
@@ -1350,6 +1356,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="hdr-digital" id="hdr-digital">00:00:00</div>
       <!-- ANALOG -->
       <canvas class="hdr-analog" id="hdr-analog" width="130" height="130" style="display:none;"></canvas>
+    </div>
+
+    <!-- MOBILE ONLY: téma pod hodinami -->
+    <div class="theme-picker-mobile">
+      <div class="t-btn" data-theme="dark"  style="background:#0f1115;" onclick="setTheme('dark')"></div>
+      <div class="t-btn" data-theme="white" style="background:#ffffff;" onclick="setTheme('white')"></div>
+      <div class="t-btn" data-theme="blue"  style="background:#0a192f;" onclick="setTheme('blue')"></div>
+      <div class="t-btn" data-theme="red"   style="background:#1a0a0a;" onclick="setTheme('red')"></div>
     </div>
 
   </div>
@@ -1390,7 +1404,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <div class="container">
   <div id="news-container">
-    <div class="loading">Načítám zprávy z motoru...</div>
+    <div class="loading">Načítám zprávy z motoru...</div></div>
   </div>
   <div id="radio-container"></div>
   <div id="weather-container">
@@ -1530,7 +1544,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </div>
 
 <!-- WHM: World Health Monitor container -->
-<div id="svet-container" style="display:none; padding:20px 0;">
+<div id="svet-container" style="display:none; padding:20px 0;"><div style="max-width:1000px;margin:0 auto;padding:0 20px;box-sizing:border-box;">
 <style>
 .whm{--whm-bg:#0f1115;--whm-card:#161a1f;--whm-card2:#1e242c;--whm-border:#24292e;--whm-border2:#2a4060;--whm-text:#e0e0e0;--whm-muted:#666;--whm-dim:#3a4450;--whm-safe:#00e87a;--whm-warn:#f5c518;--whm-danger:#ff6b35;--whm-crit:#ff3366;--whm-nuke:#d946ef;--whm-blue:#38bdf8;--whm-act:var(--act);--whm-mono:'Share Tech Mono','Courier New',monospace;--whm-r:8px;font-family:var(--whm-mono);color:var(--text);border-radius:var(--whm-r)}
 body.theme-white .whm{--whm-bg:#f5f5f7;--whm-card:#ffffff;--whm-card2:#e8e8ec;--whm-border:#d2d2d7;--whm-border2:#b0b0b8;--whm-text:#1d1d1f;--whm-muted:#86868b;--whm-dim:#c0c0c8}
@@ -1855,34 +1869,41 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
   async function loadWeather() {
     const container = document.getElementById('weather-container');
     if (!container) return;
+    container.innerHTML = '';
 
-    try {
-      // Paralelní fetch: Open-Meteo pro všechna města + WeatherXM PRO ze stejného GAS
-      const [results, wxmData] = await Promise.all([
-        Promise.all(
-          WEATHER_CITIES.map(city => fetchCityWeather(city).then(data => ({ city, data })).catch(() => null))
-        ),
-        fetch(GAS_API_URL + '?format=weatherxm&_t=' + Date.now())
-          .then(r => r.ok ? r.json() : null)
-          .catch(() => null)
-      ]);
+    // Sekce placeholdery — zobrazí se okamžitě
+    const secWxm      = document.createElement('div'); secWxm.id = 'w-sec-wxm';
+    secWxm.innerHTML  = '<div class="weather-skeleton"><div class="weather-loading-text">📡 Načítám stanici...</div></div>';
+    const secForecast = document.createElement('div'); secForecast.id = 'w-sec-forecast';
+    secForecast.innerHTML = '<div class="weather-skeleton"><div class="weather-loading-text">⛅ Načítám předpověď...</div></div>';
+    container.appendChild(secWxm);
+    container.appendChild(secForecast);
 
-      container.innerHTML = '';
-      renderWeather(container, results, wxmData);
+    // WXM stanice — fetchuj a renderuj samostatně
+    fetch(GAS_API_URL + '?format=weatherxm&_t=' + Date.now())
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+      .then(wxmData => {
+        secWxm.innerHTML = '';
+        const dummy = document.createElement('div');
+        renderWeatherWxm(secWxm, wxmData);
+      });
 
-    } catch (err) {
-      container.innerHTML = `<div class="weather-skeleton" style="color:var(--danger)">⚠️ Nepodařilo se načíst data o počasí. Zkus to za chvíli.</div>`;
-      console.error('Weather fetch error:', err);
-    }
+    // Předpověď — fetchuj a renderuj samostatně
+    Promise.all(
+      WEATHER_CITIES.map(city => fetchCityWeather(city).then(data => ({ city, data })).catch(() => null))
+    ).then(results => {
+      secForecast.innerHTML = '';
+      renderWeatherForecast(secForecast, results);
+    }).catch(err => {
+      secForecast.innerHTML = '<div class="weather-skeleton" style="color:var(--danger)">⚠️ Chyba předpovědi.</div>';
+    });
   }
 
   /* =========================================================
      RENDER POČASÍ
      ========================================================= */
-  function renderWeather(container, results, wxmData) {
-    const heroResult = results.find(r => r && r.city.hero);
-    const cityResults = results.filter(r => r && !r.city.hero);
-
+  function renderWeatherWxm(container, wxmData) {
     // ═══ WXM HERO — Osobní stanice nahoře ═══════════════════════════════════
     const wxmEl = document.createElement('div');
     wxmEl.id = 'wxm-weather-block';
@@ -1949,9 +1970,14 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
       container.appendChild(wxmEl);
 
       // Sparkline — teplota za posledních N bodů (max 48)
-      requestAnimationFrame(function() {
+      setTimeout(function() {
         const canvas = document.getElementById('wxm-sparkline');
-        if (!canvas) return;
+        if (!canvas || typeof Chart === 'undefined') return;
+        const wrap = canvas.parentElement;
+        if (wrap && wrap.offsetWidth > 0) {
+          canvas.width  = wrap.offsetWidth;
+          canvas.height = wrap.offsetHeight || 120;
+        }
         const rows  = wxm.rows.slice(-48);
         const dark  = !document.body.classList.contains('theme-white');
         const tick  = dark ? 'rgba(255,255,255,.3)' : 'rgba(0,0,0,.3)';
@@ -1981,7 +2007,7 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
             ]
           },
           options: {
-            responsive: true, maintainAspectRatio: false, animation: false,
+            responsive: false, maintainAspectRatio: false, animation: false,
             interaction: { mode: 'index', intersect: false },
             plugins: { legend: { display: true, position: 'top', labels: { color: tick, font: { size: 10 }, boxWidth: 10, padding: 6 } } },
             scales: {
@@ -1991,7 +2017,7 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
             }
           }
         });
-      });
+      }, 150);
 
     } else {
       // WXM offline — diskrétní banner
@@ -2008,6 +2034,12 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
       `;
       container.appendChild(wxmEl);
     }
+
+  }
+
+  function renderWeatherForecast(container, results) {
+    const heroResult = results.find(r => r && r.city.hero);
+    const cityResults = results.filter(r => r && !r.city.hero);
 
     // ═══ ODDĚLOVAČ ══════════════════════════════════════════════════════════
     const divider = document.createElement('div');
@@ -2497,8 +2529,8 @@ async function initSmartRegion() {
       <div class="sr-card-header">
         <div class="sr-card-title">📈 Historie měření</div>
         <div class="sr-period-group">
-          <button class="sr-period-btn active" data-days="1">24h</button>
-          <button class="sr-period-btn" data-days="7">7d</button>
+          <button class="sr-period-btn" data-days="1">24h</button>
+          <button class="sr-period-btn active" data-days="7">7d</button>
           <button class="sr-period-btn" data-days="30">30d</button>
           <button class="sr-period-btn" data-days="60">60d</button>
           <button class="sr-period-btn" data-days="90">90d</button>
