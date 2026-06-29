@@ -1752,7 +1752,24 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
   </div>
 </div>
 </div>
+</div>
 <!-- /WHM -->
+
+<footer class="site-footer" id="site-footer-el">
+  <div class="footer-links">
+    <a href="https://ember-pa.cz/" target="_blank" rel="noopener noreferrer">Ember PA</a> <span class="sep">|</span>
+    <a href="https://ondrex-ember.github.io/zenaudio/" target="_blank" rel="noopener noreferrer">Jouza Audio Lab</a> <span class="sep">|</span>
+    <a href="https://ondrex-ember.github.io/doupe-2/" target="_blank" rel="noopener noreferrer">Doupě 2</a> <span class="sep">|</span>
+    <a href="https://myscriptorium.cz" target="_blank" rel="noopener noreferrer">Scriptorium</a> <span class="sep">|</span>
+    <a href="https://oracoolio.com" target="_blank" rel="noopener noreferrer">Oracoolio</a> <span class="sep">|</span>
+    <a href="https://occultix.app" target="_blank" rel="noopener noreferrer">Occultix</a> <span class="sep">|</span>
+    <a href="https://fractout.com" target="_blank" rel="noopener noreferrer">Fractout</a> <span class="sep">|</span>
+    <a href="https://fajrum.cz" target="_blank" rel="noopener noreferrer">Fajrum</a>
+  </div>
+  <div class="footer-copy">
+    &copy; 2026. Vyvíjeno s ❤️ láskou v Novém Boru
+  </div>
+</footer>
 
 <!-- Jmenný kalendář — musí být načten před hlavním scriptem -->
 <script src="kalendar-svatky.js"></script>
@@ -2237,20 +2254,6 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     }
   }
 
-  /* Footer vždy přesune za aktivní container */
-  function _moveFooter(afterId) {
-    const footer = document.getElementById('site-footer-el');
-    if (!footer) return;
-    if (afterId === 'svet-container') {
-      // WHM: svet-container se nikdy správně nezavře — appendni footer na konec body
-      document.body.appendChild(footer);
-    } else {
-      const anchor = document.getElementById(afterId);
-      if (!anchor) return;
-      anchor.parentNode.insertBefore(footer, anchor.nextSibling);
-    }
-  }
-
   function switchTab(tab, btn) {
     currentTab = tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -2275,35 +2278,28 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
         document.getElementById('news-container').style.display = 'flex';
         document.getElementById('svet-container').style.display = 'none';
         renderEkonomika();
-        _moveFooter('news-container');
       } else if (activeSubTab === 'World Health') {
         document.getElementById('news-container').style.display = 'none';
         document.getElementById('svet-container').style.display = 'block';
         if (!window.whmLoaded) { window.whmLoaded = true; WHM.init(); }
         else WHM.refresh();
-        _moveFooter('svet-container');
       } else {
         document.getElementById('news-container').style.display = 'flex';
         document.getElementById('svet-container').style.display = 'none';
         renderNews();
-        _moveFooter('news-container');
       }
     } else if (tab === 'radio') {
       document.getElementById('radio-container').style.display = 'grid';
       renderRadio();
-      _moveFooter('radio-container');
     } else if (tab === 'weather') {
       document.getElementById('weather-container').style.display = 'flex';
       if (!weatherLoaded) { weatherLoaded = true; loadWeather(); }
       else applyWeatherSubTab();
-      _moveFooter('weather-container');
     } else if (tab === 'smart') {
       applySmartSubTab();
-      _moveFooter('smartregion-container');
     } else if (tab === 'calendar') {
       document.getElementById('calendar-container').style.display = 'flex';
       renderLunarCalendar();
-      _moveFooter('calendar-container');
     }
   }
 
@@ -2346,7 +2342,6 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
       appData = await response.json();
       renderRadio();
       renderNews();
-      _moveFooter('news-container');
     } catch (err) {
       const container = document.getElementById('news-container');
       if (container) container.innerHTML = `<div class="loading" style="color:var(--danger)">Chyba: Nepodařilo se stáhnout živá data z GitHubu.</div>`;
@@ -4527,20 +4522,5 @@ return{init,refresh};
 })();
 </script>
 
-<footer class="site-footer" id="site-footer-el">
-  <div class="footer-links">
-    <a href="https://ember-pa.cz/" target="_blank" rel="noopener noreferrer">Ember PA</a> <span class="sep">|</span>
-    <a href="https://ondrex-ember.github.io/zenaudio/" target="_blank" rel="noopener noreferrer">Jouza Audio Lab</a> <span class="sep">|</span>
-    <a href="https://ondrex-ember.github.io/doupe-2/" target="_blank" rel="noopener noreferrer">Doupě 2</a> <span class="sep">|</span>
-    <a href="https://myscriptorium.cz" target="_blank" rel="noopener noreferrer">Scriptorium</a> <span class="sep">|</span>
-    <a href="https://oracoolio.com" target="_blank" rel="noopener noreferrer">Oracoolio</a> <span class="sep">|</span>
-    <a href="https://occultix.app" target="_blank" rel="noopener noreferrer">Occultix</a> <span class="sep">|</span>
-    <a href="https://fractout.com" target="_blank" rel="noopener noreferrer">Fractout</a> <span class="sep">|</span>
-    <a href="https://fajrum.cz" target="_blank" rel="noopener noreferrer">Fajrum</a>
-  </div>
-  <div class="footer-copy">
-    &copy; 2026. Vyvíjeno s ❤️ láskou v Novém Boru
-  </div>
-</footer>
 </body>
 </html>
