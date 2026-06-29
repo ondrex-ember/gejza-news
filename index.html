@@ -2240,9 +2240,15 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
   /* Footer vždy přesune za aktivní container */
   function _moveFooter(afterId) {
     const footer = document.getElementById('site-footer-el');
-    const anchor = document.getElementById(afterId);
-    if (!footer || !anchor) return;
-    anchor.parentNode.insertBefore(footer, anchor.nextSibling);
+    if (!footer) return;
+    if (afterId === 'svet-container') {
+      // WHM: svet-container se nikdy správně nezavře — appendni footer na konec body
+      document.body.appendChild(footer);
+    } else {
+      const anchor = document.getElementById(afterId);
+      if (!anchor) return;
+      anchor.parentNode.insertBefore(footer, anchor.nextSibling);
+    }
   }
 
   function switchTab(tab, btn) {
