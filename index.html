@@ -329,6 +329,7 @@ try{ if(localStorage.getItem('jouza_consent')==='granted'){ gtag('consent','upda
     }
 
     .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; width: 100%; box-sizing: border-box; }
+    .container.container-news { max-width: 1600px; }
 
     /* ── EKONOMIKA TAB ── */
     .eko-section { margin-bottom: 16px; }
@@ -1439,10 +1440,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </div>
 <div class="subtabs-nav" id="subtabs-nav"></div>
 
-<div class="container">
+<div class="container container-news">
   <div id="news-container">
-    <div class="loading">Načítám zprávy z motoru...</div></div>
+    <div class="loading">Načítám zprávy z motoru...</div>
   </div>
+</div>
+<div class="container">
   <div id="radio-container"></div>
   <div id="weather-container">
     <div class="weather-skeleton">
