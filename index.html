@@ -312,11 +312,23 @@ try{ if(localStorage.getItem('jouza_consent')==='granted'){ gtag('consent','upda
     }
 
     /* SUB-TABS L2 */
-    .subtabs-nav {
-      display: none; gap: 25px; padding: 0 40px;
-      border-bottom: 1px solid var(--border);
-      background: var(--bg); align-items: center;
+    .subtabs-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 40px; border-bottom: 1px solid var(--border); background: var(--bg);
     }
+    .subtabs-nav {
+      display: none; gap: 25px; align-items: center;
+    }
+    .news-view-switcher { display: none; gap: 6px; align-items: center; flex-shrink: 0; padding: 8px 0; }
+    .nv-btn {
+      width: 30px; height: 30px; border-radius: 7px; border: 2px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 13px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; padding: 0;
+      transition: border-color .2s, color .2s;
+    }
+    .nv-btn:hover { color: var(--text); }
+    .nv-btn.active { border-color: var(--act); color: var(--act); }
+    @media (max-width: 700px) { .subtabs-row { padding: 0 16px; flex-wrap: wrap; gap: 6px 0; } .subtabs-nav { gap: 14px; } }
     .subtab-btn {
       background: none; border: none; color: var(--muted);
       font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
@@ -446,9 +458,22 @@ try{ if(localStorage.getItem('jouza_consent')==='granted'){ gtag('consent','upda
     .t-btn-refresh:hover { border-color: var(--act); color: var(--text); }
     .t-btn-refresh.spin { animation: pulse 1s infinite; opacity: 0.5; pointer-events: none; }
 
-    /* NEWS GRID — jedna karta na médium (hero článek + pár dalších z feedu) */
-    #news-container { display: flex; flex-direction: column; }
+    /* NEWS GRID — 3 přepínatelné pohledy: articles (výchozí), compact, sources */
+    #news-container { display: flex; flex-direction: column; gap: 50px; }
     #news-container.eko-mode { gap: 16px; }
+    .feed-section-title { font-size: 22px; font-weight: bold; margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+    .feed-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 600px) { .feed-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; } }
+    @media (min-width: 900px) { .feed-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 1100px) { .feed-grid { grid-template-columns: repeat(4, 1fr); } }
+    .news-item { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; transition: transform 0.2s; overflow: hidden; }
+    .news-item:hover { transform: translateY(-2px); border-color: var(--act); }
+    .news-item-thumb { float: left; width: 76px; height: 76px; object-fit: cover; border-radius: 6px; margin: 0 12px 6px 0; background: var(--bg); }
+    .news-title { font-size: 15px; font-weight: bold; margin-bottom: 6px; color: var(--act); text-decoration: none; display: block; line-height: 1.3; }
+    .news-perex { font-size: 12px; color: var(--text); line-height: 1.5; opacity: 0.8; }
+    .news-source { clear: both; display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); opacity: .7; }
+
+    /* Sources view (velké karty: hero + digest) */
     .source-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
     @media (min-width: 700px) { .source-grid { grid-template-columns: repeat(2, 1fr); } }
     @media (min-width: 1100px) { .source-grid { grid-template-columns: repeat(3, 1fr); } }
@@ -1442,7 +1467,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <button class="tab-btn" onclick="switchTab('calendar', this)">Kalendář</button>
   </div>
 </div>
-<div class="subtabs-nav" id="subtabs-nav"></div>
+<div class="subtabs-row">
+  <div class="subtabs-nav" id="subtabs-nav"></div>
+  <div class="news-view-switcher" id="news-view-switcher">
+    <button type="button" class="nv-btn" data-view="articles" onclick="setNewsView('articles', this)" title="Karty s obrázky u každého článku (výchozí)">🖼️</button>
+    <button type="button" class="nv-btn" data-view="compact" onclick="setNewsView('compact', this)" title="Bez obrázků — kompaktní">📃</button>
+    <button type="button" class="nv-btn" data-view="sources" onclick="setNewsView('sources', this)" title="Velké karty podle zdroje">🗂️</button>
+  </div>
+</div>
 
 <div class="container container-news">
   <div id="news-container">
@@ -1820,6 +1852,7 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
   let weatherLoaded = false;
   let currentTab = 'news';
   let activeSubTab = 'Svět';
+  let newsView = (function(){ try { return localStorage.getItem('pref-newsview') || 'articles'; } catch(e){ return 'articles'; } })();
 
   const SUB_TABS = {
     news:     ['Svět', 'ČR', 'Novoborsko', 'Ekonomika', 'World Health'],
@@ -2234,10 +2267,25 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     activeSubTab = tabs[0];
   }
 
+  function updateNewsViewSwitcherVisibility() {
+    const el = document.getElementById('news-view-switcher');
+    if (!el) return;
+    const show = currentTab === 'news' && activeSubTab !== 'Ekonomika' && activeSubTab !== 'World Health';
+    el.style.display = show ? 'flex' : 'none';
+  }
+
+  function setNewsView(view, btn) {
+    newsView = view;
+    try { localStorage.setItem('pref-newsview', view); } catch(e) {}
+    document.querySelectorAll('.nv-btn').forEach(b => b.classList.toggle('active', b === btn));
+    if (currentTab === 'news' && activeSubTab !== 'Ekonomika' && activeSubTab !== 'World Health') renderNews();
+  }
+
   function switchSubTab(subTab, btn) {
     activeSubTab = subTab;
     document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    updateNewsViewSwitcherVisibility();
     if (currentTab === 'news') {
       const nc = document.getElementById('news-container');
       const sc = document.getElementById('svet-container');
@@ -2296,6 +2344,7 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     currentTab = tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    updateNewsViewSwitcherVisibility();
 
     // Skryj vše
     document.getElementById('news-container').style.display    = 'none';
@@ -2513,6 +2562,38 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
       mainContainer.innerHTML = '<div class="loading">Žádné zprávy v kategorii <strong>' + activeSubTab + '</strong>.</div>';
       return;
     }
+    if (newsView === 'sources') renderNewsAsSources(mainContainer, newsFiltered);
+    else renderNewsAsArticles(mainContainer, newsFiltered, newsView === 'articles');
+  }
+
+  // View: "articles" (výchozí, showImages=true) / "compact" (showImages=false) —
+  // sekce po zdroji, karta pro každý článek.
+  function renderNewsAsArticles(mainContainer, newsFiltered, showImages) {
+    newsFiltered.forEach(feed => {
+      const limit = feed.limit ? parseInt(feed.limit) : 10;
+      const normalizedItems = parseFeedItems(feed, limit);
+      if (normalizedItems.length === 0) return;
+      const sectionDiv = document.createElement('div');
+      sectionDiv.className = 'feed-section';
+      sectionDiv.innerHTML = `<h2 class="feed-section-title"><span style="color: var(--act)">#</span> ${feed.label}</h2>`;
+      const gridDiv = document.createElement('div');
+      gridDiv.className = 'feed-grid';
+      normalizedItems.forEach(item => {
+        gridDiv.innerHTML += `
+          <div class="news-item">
+            ${(showImages && item.image) ? `<img class="news-item-thumb" src="${item.image}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+            <a href="${item.link}" target="_blank" class="news-title">${item.title}</a>
+            <div class="news-perex">${item.description}</div>
+            ${item.source ? `<div class="news-source">${item.source}</div>` : ''}
+          </div>`;
+      });
+      sectionDiv.appendChild(gridDiv);
+      mainContainer.appendChild(sectionDiv);
+    });
+  }
+
+  // View: "sources" — jedna karta na médium (hero článek + digest zbytku feedu).
+  function renderNewsAsSources(mainContainer, newsFiltered) {
     const ITEMS_PER_SOURCE = 5; // 1 hero + pár dalších položek z feedu
     const gridDiv = document.createElement('div');
     gridDiv.className = 'source-grid';
@@ -2556,6 +2637,8 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
 
   // Vyrenderuj výchozí sub-tabs pro News (první záložka)
   renderSubTabs('news');
+  document.querySelectorAll('.nv-btn').forEach(b => b.classList.toggle('active', b.dataset.view === newsView));
+  updateNewsViewSwitcherVisibility();
   init();
   setInterval(() => refreshData(false), 300000);
   // Počasí se auto-refreshuje každých 30 minut, pokud je záložka aktivní
