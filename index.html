@@ -449,11 +449,16 @@ try{ if(localStorage.getItem('jouza_consent')==='granted'){ gtag('consent','upda
     #news-container { display: flex; flex-direction: column; gap: 50px; }
     #news-container.eko-mode { gap: 16px; }
     .feed-section-title { font-size: 22px; font-weight: bold; margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-    .feed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .feed-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 600px) { .feed-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; } }
+    @media (min-width: 900px) { .feed-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 1100px) { .feed-grid { grid-template-columns: repeat(4, 1fr); } }
     .news-item { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; transition: transform 0.2s; }
     .news-item:hover { transform: translateY(-2px); border-color: var(--act); }
+    .news-item-thumb { display: block; width: calc(100% + 40px); aspect-ratio: 16/9; object-fit: cover; border-radius: 6px 6px 0 0; margin: -20px -20px 12px -20px; background: var(--bg); }
     .news-title { font-size: 16px; font-weight: bold; margin-bottom: 8px; color: var(--act); text-decoration: none; display: block; line-height: 1.3; }
     .news-perex { font-size: 13px; color: var(--text); line-height: 1.5; opacity: 0.8; flex: 1; }
+    .news-source { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-top: 10px; opacity: .7; }
 
     /* RADIO LIST */
     #radio-container { 
@@ -864,8 +869,7 @@ try{ if(localStorage.getItem('jouza_consent')==='granted'){ gtag('consent','upda
     /* ============================================= */
 
     @media (max-width: 768px) {
-      .feed-grid { grid-template-columns: 1fr; }
-      #radio-container { grid-template-columns: 1fr; } 
+      #radio-container { grid-template-columns: 1fr; }
       #global-player { flex-direction: column; gap: 15px; padding: 15px 20px; align-items: flex-start; }
       .player-controls { width: 100%; justify-content: space-between; }
       .radio-card { flex-direction: column; align-items: flex-start; gap: 15px; }
@@ -2442,6 +2446,28 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
 
   function changeVolume(val) { if (audio) audio.volume = val; }
 
+  function extractFeedImage(itemEl) {
+    try {
+      const enc = itemEl.getElementsByTagName('enclosure')[0];
+      if (enc) {
+        const type = enc.getAttribute('type') || '';
+        const url = enc.getAttribute('url');
+        if (url && (!type || type.indexOf('image') !== -1)) return url;
+      }
+      const mc = itemEl.getElementsByTagName('media:content')[0];
+      if (mc && mc.getAttribute('url')) return mc.getAttribute('url');
+      const mt = itemEl.getElementsByTagName('media:thumbnail')[0];
+      if (mt && mt.getAttribute('url')) return mt.getAttribute('url');
+    } catch(e) {}
+    return null;
+  }
+
+  function extractSourceHost(link) {
+    try {
+      return new URL(link).hostname.replace(/^www\./, '');
+    } catch(e) { return ''; }
+  }
+
   function renderNews() {
     const mainContainer = document.getElementById('news-container');
     if (!mainContainer) return;
@@ -2464,7 +2490,8 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
              desc = `📍 Region: ${item.region || 'Neznámý'} | 📰 Typ: ${item.type || 'Událost'} | 📡 Zdroj: ${item.source}`;
              if (item.score) desc += ` | ⚠️ Skóre: ${item.score}`;
           }
-          return { title: item.title || item.name || 'Bez titulku', link: item.url || item.link || '#', description: desc.replace(/<[^>]*>/g, '').substring(0, 180) + '...' };
+          const link = item.url || item.link || '#';
+          return { title: item.title || item.name || 'Bez titulku', link, description: desc.replace(/<[^>]*>/g, '').substring(0, 180) + '...', image: item.image || item.thumbnail || item.img || null, source: item.source || extractSourceHost(link) };
         });
       } catch(e) {
         const parser = new DOMParser();
@@ -2474,7 +2501,7 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
           const title = item.querySelector('title')?.textContent;
           const link = (item.querySelector('link')?.textContent) || (item.querySelector('link')?.getAttribute('href'));
           const description = item.querySelector('description, summary')?.textContent || '';
-          return { title: title || 'Bez titulku', link: link || '#', description: description.replace(/<[^>]*>/g, '').substring(0, 180) + '...' };
+          return { title: title || 'Bez titulku', link: link || '#', description: description.replace(/<[^>]*>/g, '').substring(0, 180) + '...', image: extractFeedImage(item), source: extractSourceHost(link || '#') };
         });
       }
       if (normalizedItems.length === 0) return;
@@ -2486,8 +2513,10 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
       normalizedItems.forEach(item => {
         gridDiv.innerHTML += `
           <div class="news-item">
+            ${item.image ? `<img class="news-item-thumb" src="${item.image}" alt="" loading="lazy" onerror="this.remove()">` : ''}
             <a href="${item.link}" target="_blank" class="news-title">${item.title}</a>
             <div class="news-perex">${item.description}</div>
+            ${item.source ? `<div class="news-source">${item.source}</div>` : ''}
           </div>`;
       });
       sectionDiv.appendChild(gridDiv);
