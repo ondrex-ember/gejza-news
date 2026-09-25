@@ -47,24 +47,50 @@
 }
 </script>
 <meta name="google-site-verification" content="fUTIbVHhDFGfNU_2_WQz5-di96y7zUNTI7J6PI4Wb-w" />
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-4K77WLE5F5"></script>
-	<script>
-  	window.dataLayer = window.dataLayer || [];
-  	function gtag(){dataLayer.push(arguments);}
-  	gtag('js', new Date());
-  	gtag('config', 'G-4K77WLE5F5');
-	</script>
+<!-- Consent Mode v2 (advanced) — default state, must load before GTM -->
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('consent', 'default', {
+  ad_storage: 'denied',
+  ad_user_data: 'denied',
+  ad_personalization: 'denied',
+  analytics_storage: 'denied',
+  functionality_storage: 'denied',
+  wait_for_update: 500
+});
+gtag('set', 'ads_data_redaction', true);
+// Vracející se návštěvník se souhlasem → update ještě před načtením GTM
+try{ if(localStorage.getItem('jouza_consent')==='granted'){ gtag('consent','update',{ad_storage:'granted',ad_user_data:'granted',ad_personalization:'granted',analytics_storage:'granted',functionality_storage:'granted'}); } }catch(e){}
+</script>
+
+<!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 	new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 	j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 	'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 	})(window,document,'script','dataLayer','GTM-MTWGJW5D');</script>
+<!-- End Google Tag Manager -->
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4K77WLE5F5"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config', 'G-4K77WLE5F5');
+</script>
+
+<!-- Microsoft Clarity — načte se až po souhlasu (Consent Mode v2 nemá pro Clarity nativní gating) -->
 <script type="text/javascript">
+  function jouzaLoadClarity(){
+    if(window.__jouzaClarityLoaded) return;
+    window.__jouzaClarityLoaded = true;
     (function(c,l,a,r,i,t,y){
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
         t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
         y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
     })(window, document, "clarity", "script", "vp4djdendr");
+  }
+  try{ if(localStorage.getItem('jouza_consent')==='granted'){ jouzaLoadClarity(); } }catch(e){}
 </script>
 <script type="application/ld+json">
 {
@@ -1764,7 +1790,8 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     <a href="https://oracoolio.com" target="_blank" rel="noopener noreferrer">Oracoolio</a> <span class="sep">|</span>
     <a href="https://occultix.app" target="_blank" rel="noopener noreferrer">Occultix</a> <span class="sep">|</span>
     <a href="https://fractout.com" target="_blank" rel="noopener noreferrer">Fractout</a> <span class="sep">|</span>
-    <a href="https://fajrum.cz" target="_blank" rel="noopener noreferrer">Fajrum</a>
+    <a href="https://fajrum.cz" target="_blank" rel="noopener noreferrer">Fajrum</a> <span class="sep">|</span>
+    <a href="#" onclick="jouzaConsentInfo();return false;">🍪 Soukromí</a>
   </div>
   <div class="footer-copy">
     &copy; 2026. Vyvíjeno s ❤️ láskou v Novém Boru
@@ -4521,6 +4548,8 @@ async function init(){
 return{init,refresh};
 })();
 </script>
+
+<script src="/consent.js"></script>
 
 </body>
 </html>
