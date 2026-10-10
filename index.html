@@ -4161,21 +4161,68 @@ async function _ekoRenderInflace(el, token) {
   }
 }
 
+/* ── Měsíční sloupce inflace ──────────────────────────────────────
+   Roky do posledního publikovaného celého roku = průměrná roční míra (history).
+   Za nimi 12 slotů 01–12 aktuálního roku (inf.monthly z GAS, ČSÚ CEN0101HT02);
+   nepublikované měsíce zůstávají prázdné (null). Metriku měsíčních sloupců
+   přepíná konstanta EKO_INFL_MONTH_METRIC: 'yoy' | 'avg12' | 'mom'. */
+const EKO_INFL_MONTH_METRIC = 'yoy';
+const EKO_INFL_METRICS = {
+  yoy:   { short: 'meziroční',          tip: 'meziroční míra inflace' },
+  avg12: { short: '12m průměr',         tip: 'průměrná míra inflace za 12 měsíců' },
+  mom:   { short: 'meziměsíční',        tip: 'meziměsíční změna cen' }
+};
+
+/* Čistá funkce (bez DOM) — sestaví sérii pro graf i hero hodnotu. */
+function _ekoInflaceSeries(inf, metric) {
+  const m = EKO_INFL_METRICS[metric] ? metric : 'yoy';
+  const labels = [], values = [], monthly = [];
+  (inf.history || []).forEach(h => { labels.push(String(h.year)); values.push(h.value); monthly.push(false); });
+
+  let hero = { value: inf.latest_value, label: 'rok ' + (inf.latest_year || '—') };
+  const mon = inf.monthly;
+  if (mon && Array.isArray(mon.items) && mon.items.length) {
+    const yy = String(mon.year).slice(-2);
+    const byMonth = {};
+    mon.items.forEach(it => { byMonth[it.month] = it[m]; });
+    let lastMonth = 0;
+    for (let mm = 1; mm <= 12; mm++) {
+      const v = byMonth[mm];
+      labels.push((mm < 10 ? '0' : '') + mm + '/' + yy);
+      values.push(v == null ? null : v);
+      monthly.push(true);
+      if (v != null) lastMonth = mm;
+    }
+    if (lastMonth) {
+      hero = { value: byMonth[lastMonth],
+               label: (lastMonth < 10 ? '0' : '') + lastMonth + '/' + mon.year + ' · ' + EKO_INFL_METRICS[m].short };
+    }
+  }
+  return { labels, values, monthly, hero, metric: m, hasMonthly: monthly.some(Boolean) };
+}
+
 /* ── _ekoDrawInflace ─────────────────────────────────────────── */
 function _ekoDrawInflace(el, token, inf) {
   if (token !== _ekoRenderToken) return;
+  const s = _ekoInflaceSeries(inf, EKO_INFL_MONTH_METRIC);
+  const title = s.hasMonthly ? '📈 Míra inflace ČR' : '📈 Průměrná roční míra inflace';
+  const note  = s.hasMonthly
+    ? `<div class="eko-inflace-label" style="margin:0 0 6px 0">roční průměr do ${escHtml(inf.latest_year)} · měsíce ${escHtml(inf.monthly.year)}: ${escHtml(EKO_INFL_METRICS[s.metric].tip)}</div>`
+    : '';
+  const heroVal = (s.hero.value != null && s.hero.value !== '') ? escHtml(s.hero.value) : '—';
   el.innerHTML = `
-    <div class="eko-section-title">📈 Průměrná roční míra inflace</div>
+    <div class="eko-section-title">${title}</div>
+    ${note}
     <div class="eko-inflace-card">
       <div class="eko-inflace-main">
-        <div class="eko-inflace-val">${inf.latest_value != null ? inf.latest_value : '—'}<span class="eko-inflace-unit">%</span></div>
-        <div class="eko-inflace-label">rok ${inf.latest_year || '—'} · zdroj ČSÚ</div>
+        <div class="eko-inflace-val">${heroVal}<span class="eko-inflace-unit">%</span></div>
+        <div class="eko-inflace-label">${escHtml(s.hero.label)} · zdroj ČSÚ</div>
       </div>
       <div class="eko-inflace-chart-wrap">
-        <canvas id="eko-inflace-canvas" role="img" aria-label="Graf inflace 2010–${inf.latest_year}"></canvas>
+        <canvas id="eko-inflace-canvas" role="img" aria-label="Graf inflace 2010–${escHtml(s.hasMonthly ? inf.monthly.year : inf.latest_year)}"></canvas>
       </div>
     </div>`;
-  if (inf.history && inf.history.length) {
+  if (s.values.length) {
     setTimeout(() => {
       const canvas = document.getElementById('eko-inflace-canvas');
       if (!canvas || typeof Chart === 'undefined') return;
@@ -4185,16 +4232,21 @@ function _ekoDrawInflace(el, token, inf) {
       const wrap = canvas.parentElement;
       canvas.width  = wrap ? wrap.offsetWidth || 400 : 400;
       canvas.height = wrap ? wrap.offsetHeight || 80 : 80;
+      const tipText = EKO_INFL_METRICS[s.metric].tip;
       ekoInflaceChart = new Chart(canvas.getContext('2d'), {
         type: 'bar',
-        data: { labels: inf.history.map(h => h.year), datasets: [{
-          data: inf.history.map(h => h.value),
-          backgroundColor: inf.history.map(h =>
-            h.value > 10 ? 'rgba(255,77,77,.85)' :
-            h.value > 5  ? 'rgba(255,174,0,.75)' : 'rgba(255,174,0,.35)'),
+        data: { labels: s.labels, datasets: [{
+          data: s.values,
+          backgroundColor: s.values.map((v, i) => s.monthly[i]
+            ? 'rgba(94,170,255,.8)'                       // měsíce aktuálního roku
+            : (v > 10 ? 'rgba(255,77,77,.85)' :
+               v > 5  ? 'rgba(255,174,0,.75)' : 'rgba(255,174,0,.35)')),
           borderRadius: 3 }] },
         options: { responsive: false, maintainAspectRatio: false, animation: false,
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.parsed.y + ' %' }}},
+          plugins: { legend: { display: false }, tooltip: { callbacks: {
+            title: items => items.length ? items[0].label : '',
+            label: ctx => ctx.parsed.y + ' %' + (s.monthly[ctx.dataIndex] ? ' (' + tipText + ')' : ' (průměr roku)')
+          }}},
           scales: {
             x: { ticks: { color: tickColor, font: { size: 9 }, maxRotation: 0 }, grid: { display: false } },
             y: { ticks: { color: tickColor, font: { size: 9 }, maxTicksLimit: 4, callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,.05)' } }
