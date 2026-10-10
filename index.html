@@ -2524,6 +2524,21 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
     } catch(e) { return ''; }
   }
 
+  // Obsah feedů je nedůvěryhodný vstup (cizí weby) → před vložením přes innerHTML escapovat
+  // a povolit jen http(s) odkazy (blokuje javascript:/data: URL).
+  function escHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function safeUrl(u) {
+    if (!u || u === '#') return '#';
+    try {
+      const p = new URL(u, location.href);
+      return (p.protocol === 'http:' || p.protocol === 'https:') ? escHtml(p.href) : '#';
+    } catch(e) { return '#'; }
+  }
+
   function parseFeedItems(feed, limit) {
     const text = feed.rawText;
     let normalizedItems = [];
@@ -2575,16 +2590,16 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
       if (normalizedItems.length === 0) return;
       const sectionDiv = document.createElement('div');
       sectionDiv.className = 'feed-section';
-      sectionDiv.innerHTML = `<h2 class="feed-section-title"><span style="color: var(--act)">#</span> ${feed.label}</h2>`;
+      sectionDiv.innerHTML = `<h2 class="feed-section-title"><span style="color: var(--act)">#</span> ${escHtml(feed.label)}</h2>`;
       const gridDiv = document.createElement('div');
       gridDiv.className = 'feed-grid';
       normalizedItems.forEach(item => {
         gridDiv.innerHTML += `
           <div class="news-item">
-            ${(showImages && item.image) ? `<img class="news-item-thumb" src="${item.image}" alt="" loading="lazy" onerror="this.remove()">` : ''}
-            <a href="${item.link}" target="_blank" class="news-title">${item.title}</a>
-            <div class="news-perex">${item.description}</div>
-            ${item.source ? `<div class="news-source">${item.source}</div>` : ''}
+            ${(showImages && item.image) ? `<img class="news-item-thumb" src="${safeUrl(item.image)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+            <a href="${safeUrl(item.link)}" target="_blank" rel="noopener noreferrer" class="news-title">${escHtml(item.title)}</a>
+            <div class="news-perex">${escHtml(item.description)}</div>
+            ${item.source ? `<div class="news-source">${escHtml(item.source)}</div>` : ''}
           </div>`;
       });
       sectionDiv.appendChild(gridDiv);
@@ -2606,13 +2621,13 @@ body.theme-red .whm{--whm-bg:#1a0a0a;--whm-card:#2a0f0f;--whm-card2:#3a1515;--wh
       const card = document.createElement('div');
       card.className = 'source-card';
       card.innerHTML = `
-        <div class="source-card-header"><span style="color: var(--act)">#</span> ${feed.label}</div>
-        <a href="${hero.link}" target="_blank" class="source-hero">
-          ${hero.image ? `<img class="source-hero-img" src="${hero.image}" alt="" loading="lazy" onerror="this.remove()">` : ''}
-          <div class="source-hero-title">${hero.title}</div>
-          <div class="source-hero-perex">${hero.description}</div>
+        <div class="source-card-header"><span style="color: var(--act)">#</span> ${escHtml(feed.label)}</div>
+        <a href="${safeUrl(hero.link)}" target="_blank" rel="noopener noreferrer" class="source-hero">
+          ${hero.image ? `<img class="source-hero-img" src="${safeUrl(hero.image)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+          <div class="source-hero-title">${escHtml(hero.title)}</div>
+          <div class="source-hero-perex">${escHtml(hero.description)}</div>
         </a>
-        ${rest.length ? `<ul class="source-list">${rest.map(it => `<li><a href="${it.link}" target="_blank">${it.title}</a></li>`).join('')}</ul>` : ''}
+        ${rest.length ? `<ul class="source-list">${rest.map(it => `<li><a href="${safeUrl(it.link)}" target="_blank" rel="noopener noreferrer">${escHtml(it.title)}</a></li>`).join('')}</ul>` : ''}
       `;
       gridDiv.appendChild(card);
     });
