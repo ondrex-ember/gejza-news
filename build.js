@@ -24,6 +24,25 @@ function countFeedItems(text) {
   return matches ? matches.length : 0;
 }
 
+// Ořízne RSS/Atom/RDF na prvních `limit` položek. data.json se commituje každých
+// 30 min, takže ukládání celých feedů zbytečně nafukuje data.json i historii repa.
+// Frontend stejně nikdy nezobrazí víc než `limit` položek na zdroj.
+function trimFeed(text, limit) {
+  const n = parseInt(limit, 10);
+  if (!n || n < 1) return text;
+  const re = /<(?:item|entry)[\s>]/gi;
+  let m, count = 0, cut = -1;
+  while ((m = re.exec(text)) !== null) {
+    count++;
+    if (count === n + 1) { cut = m.index; break; }
+  }
+  if (cut === -1) return text; // feed má <= limit položek, nechat beze změny
+  const head = text.slice(0, cut);
+  if (/<rdf:RDF[\s>]/i.test(head)) return head + '</rdf:RDF>';
+  if (/<feed[\s>]/i.test(head)) return head + '</feed>';
+  return head + '</channel></rss>';
+}
+
 async function build() {
   try {
     console.log("Stahuji nastavení z motoru...");
@@ -46,12 +65,19 @@ async function build() {
           console.warn(`  ⚠️  ${feed.label}: HTTP ${feedRes.status} ${feedRes.statusText}`);
         }
         const text = await feedRes.text();
+        const isJson = text.trim().startsWith('{') || text.trim().startsWith('[');
+        let feedOk = true;
         if (!looksLikeFeed(text)) {
-          console.warn(`  ⚠️  ${feed.label}: odpověď nevypadá jako RSS/Atom/JSON (možný bot-block nebo špatná URL) — ukládám i tak, zkontroluj ${feed.url}`);
-        } else if (!text.trim().startsWith('{') && !text.trim().startsWith('[') && countFeedItems(text) === 0) {
+          console.warn(`  ⚠️  ${feed.label}: odpověď nevypadá jako RSS/Atom/JSON (možný bot-block nebo špatná URL) — obsah neukládám, zkontroluj ${feed.url}`);
+          feedOk = false;
+        } else if (!isJson && countFeedItems(text) === 0) {
           console.warn(`  ⚠️  ${feed.label}: feed je validní XML, ale obsahuje 0 položek (možný rate-limit/bot-block s prázdnou odpovědí) — zkontroluj ${feed.url}`);
+          feedOk = false;
         }
-        compiledNews.push({ label: feed.label, limit: feed.limit, subTab: feed.subTab, rawText: text });
+        // Nefunkční feed → prázdný rawText; frontend takový zdroj přeskočí (0 položek).
+        // Funkční XML feed se ořízne na limit; JSON (NBSense) zůstává celý.
+        const rawText = !feedOk ? '' : (isJson ? text : trimFeed(text, feed.limit || 10));
+        compiledNews.push({ label: feed.label, limit: feed.limit, subTab: feed.subTab, rawText });
 
       } catch (e) {
         console.error(`Chyba při stahování feedu ${feed.label}:`, e.message);
