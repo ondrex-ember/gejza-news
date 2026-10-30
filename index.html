@@ -2920,6 +2920,9 @@ function srRenderChart(agg, rows, gran) {
 function srAggregate(rows, gran) {
   const B={}, rS={}, rC={};
   rows.forEach(row=>{
+    // DendroNet řádky jsou určené jen pro mapu — mají do sloupců senzorů zakódované
+    // jiné veličiny (avg_growth/avg_twd/soil_temp v µm a °C), které by v grafu tvořily peak
+    if(row[2]==='DendroNet')return;
     const k=srBucket(row[0],gran); if(!k)return;
     if(!B[k])B[k]={t:k,temp:null,pm10:null,pm25:null,no2:null,soil:null,water:null,water2:null,radio:null,doprava:null,_s:{},_c:{}};
     const b=B[k], pf=v=>v!==""?parseFloat(String(v).replace(',','.')):NaN;
